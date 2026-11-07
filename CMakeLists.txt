@@ -5,26 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Keep third-party dependencies local to the repo instead of relying on Homebrew installs.
+# Keep third-party dependencies local to the repo as git submodules.
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
-
-set(ICONIQUEST_DEPS_PREFIX "${CMAKE_BINARY_DIR}/_deps/install")
-list(PREPEND CMAKE_PREFIX_PATH "${ICONIQUEST_DEPS_PREFIX}")
-
-if(EXISTS "${ICONIQUEST_DEPS_PREFIX}/lib/cmake/SDL3/SDL3Config.cmake")
-    set(SDL3_DIR "${ICONIQUEST_DEPS_PREFIX}/lib/cmake/SDL3")
-endif()
-if(EXISTS "${ICONIQUEST_DEPS_PREFIX}/lib/cmake/SDL3_image/SDL3_imageConfig.cmake")
-    set(SDL3_image_DIR "${ICONIQUEST_DEPS_PREFIX}/lib/cmake/SDL3_image")
-endif()
-if(EXISTS "${ICONIQUEST_DEPS_PREFIX}/lib/cmake/SDL3_mixer/SDL3_mixerConfig.cmake")
-    set(SDL3_mixer_DIR "${ICONIQUEST_DEPS_PREFIX}/lib/cmake/SDL3_mixer")
-endif()
-
-find_package(SDL3 CONFIG REQUIRED)
-find_package(SDL3_image CONFIG REQUIRED)
-find_package(SDL3_mixer CONFIG REQUIRED)
-find_package(pugixml CONFIG REQUIRED)
 
 # ImGui sources
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/imgui")

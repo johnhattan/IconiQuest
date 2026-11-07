@@ -22,11 +22,6 @@ imgui.ini
 # CMake
 CMakeUserPresets.json
 
-# Dependencies (we'll rebuild these)
-lib/SDL3/
-lib/SDL_image/
-lib/SDL_mixer/
-
 # Executable
 /iconiquest
 

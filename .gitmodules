@@ -6,17 +6,17 @@
 [submodule "lib/SDL3"]
 	path = lib/SDL3
 	url = https://github.com/libsdl-org/SDL.git
-	branch = release-3.4
+	branch = release-3.4.x
 
 [submodule "lib/SDL_image"]
 	path = lib/SDL_image
 	url = https://github.com/libsdl-org/SDL_image.git
-	branch = release-3.4
+	branch = release-3.4.x
 
 [submodule "lib/SDL_mixer"]
 	path = lib/SDL_mixer
 	url = https://github.com/libsdl-org/SDL_mixer.git
-	branch = release-3.2
+	branch = release-3.2.x
 
 [submodule "lib/pugixml"]
 	path = lib/pugixml
