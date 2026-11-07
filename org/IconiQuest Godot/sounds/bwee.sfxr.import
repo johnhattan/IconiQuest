@@ -1,0 +1,17 @@
+[remap]
+
+importer="com.timothyqiu.gdfxr.importer"
+type="AudioStreamWAV"
+uid="uid://caix341fj1nbw"
+path="res://.godot/imported/bwee.sfxr-6c6897004ca482389c70c6bdcc6c18fd.sample"
+
+[deps]
+
+source_file="res://sounds/bwee.sfxr"
+dest_files=["res://.godot/imported/bwee.sfxr-6c6897004ca482389c70c6bdcc6c18fd.sample"]
+
+[params]
+
+loop=false
+bit_depth=0
+sample_rate=0

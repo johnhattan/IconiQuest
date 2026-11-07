@@ -1,0 +1,52 @@
+[gd_scene load_steps=8 format=3 uid="uid://ix5dfll3hwx5"]
+
+[ext_resource type="Script" uid="uid://dcgq6bfe0fobk" path="res://scripts/Main.cs" id="1_g1e81"]
+[ext_resource type="Script" uid="uid://dyi62g6k7yj75" path="res://scripts/Actor.cs" id="2_8en54"]
+[ext_resource type="Script" uid="uid://c8gkaoxjnil5o" path="res://scripts/World.cs" id="2_r7bl6"]
+[ext_resource type="Script" uid="uid://dkh2o2b3oi2t1" path="res://scripts/Inventory.cs" id="3_6kfgf"]
+[ext_resource type="Script" uid="uid://daq7fn1iaf6c7" path="res://scripts/Location.cs" id="3_7sn0e"]
+[ext_resource type="AudioStream" uid="uid://caix341fj1nbw" path="res://sounds/bwee.sfxr" id="3_lxjtc"]
+[ext_resource type="Texture2D" uid="uid://dt2s3co4kchgg" path="res://embeds/icon.svg" id="5_o6xl0"]
+
+[node name="Main" type="Node2D" node_paths=PackedStringArray("_worldsContainer", "WorldCurrent")]
+script = ExtResource("1_g1e81")
+_worldsContainer = NodePath("Worlds")
+WorldCurrent = NodePath("Worlds/WorldMenu")
+
+[node name="Worlds" type="Node" parent="."]
+
+[node name="WorldMenu" type="Node2D" parent="Worlds" node_paths=PackedStringArray("_inventoryLocation", "_startLocation")]
+script = ExtResource("2_r7bl6")
+_inventoryLocation = NodePath("_Inventory")
+_startLocation = NodePath("_Start")
+
+[node name="_Inventory" type="Node2D" parent="Worlds/WorldMenu"]
+script = ExtResource("3_6kfgf")
+
+[node name="_Start" type="Node2D" parent="Worlds/WorldMenu"]
+script = ExtResource("3_7sn0e")
+
+[node name="Actor" type="Sprite2D" parent="Worlds/WorldMenu/_Start"]
+position = Vector2(125, 111)
+rotation = 0.689405
+texture = ExtResource("5_o6xl0")
+script = ExtResource("2_8en54")
+
+[node name="Actor2" type="Sprite2D" parent="Worlds/WorldMenu/_Start"]
+position = Vector2(334.5, 158.5)
+rotation = -0.66148
+scale = Vector2(0.664063, 1.19531)
+texture = ExtResource("5_o6xl0")
+script = ExtResource("2_8en54")
+
+[node name="Bwee" type="AudioStreamPlayer2D" parent="Worlds/WorldMenu/_Start"]
+position = Vector2(94, 293)
+stream = ExtResource("3_lxjtc")
+autoplay = true
+max_distance = 2001.0
+max_polyphony = 2
+
+[node name="UI" type="Container" parent="."]
+visible = false
+offset_right = 494.0
+offset_bottom = 308.0
