@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1"
+	 id="svg2" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:svg="http://www.w3.org/2000/svg" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:dc="http://purl.org/dc/elements/1.1/" sodipodi:docname="New document 1" inkscape:version="0.48.0 r9654"
+	 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="256px" height="256px"
+	 viewBox="0 0 256 256" enable-background="new 0 0 256 256" xml:space="preserve">
+<sodipodi:namedview  inkscape:zoom="1.4142136" id="base" showgrid="false" fit-margin-left="0" inkscape:cy="-12.617865" pagecolor="#ffffff" bordercolor="#666666" borderopacity="1.0" fit-margin-top="0" inkscape:cx="205.12327" inkscape:pageopacity="0.0" inkscape:window-height="968" inkscape:current-layer="layer1" inkscape:window-maximized="1" inkscape:pageshadow="2" inkscape:document-units="px" inkscape:window-y="-4" fit-margin-right="0" inkscape:window-width="1280" fit-margin-bottom="0" inkscape:window-x="-4">
+	</sodipodi:namedview>
+<g>
+	
+		<radialGradient id="path3783_1_" cx="-414.896" cy="543.1963" r="39.4219" gradientTransform="matrix(4.7194 0 0 4.7205 2159.1543 -2369.625)" gradientUnits="userSpaceOnUse">
+		<stop  offset="0" style="stop-color:#EEEEEC"/>
+		<stop  offset="0.5191" style="stop-color:#BABDB6"/>
+		<stop  offset="1" style="stop-color:#888A85"/>
+	</radialGradient>
+	<path id="path3783" inkscape:connector-curvature="0" fill="url(#path3783_1_)" d="M121.544,0.271
+		C53.284,1.944-4.965,66.42,0.336,134.624c1.854,68.312,66.119,126.301,134.321,121.044
+		c68.294-1.829,126.229-66.131,121.016-134.354C253.27,52.491,190.35-4.416,121.544,0.271z"/>
+	
+		<radialGradient id="path3785_1_" cx="-440.9785" cy="519.1191" r="39.4215" gradientTransform="matrix(4.7184 0 0 4.7195 2158.5317 -2369.4832)" gradientUnits="userSpaceOnUse">
+		<stop  offset="0" style="stop-color:#EEEEEC"/>
+		<stop  offset="0.5191" style="stop-color:#BABDB6"/>
+		<stop  offset="1" style="stop-color:#888A85"/>
+	</radialGradient>
+	
+		<path id="path3785" sodipodi:ry="39.421204" sodipodi:type="arc" sodipodi:rx="39.421204" sodipodi:cy="52.689968" sodipodi:cx="54.624001" fill="url(#path3785_1_)" d="
+		M249.641,127.977c0,67.195-54.457,121.668-121.639,121.668c-67.18,0-121.64-54.474-121.64-121.668S60.822,6.309,128.002,6.309
+		C195.184,6.308,249.641,60.781,249.641,127.977z"/>
+</g>
+</svg>
