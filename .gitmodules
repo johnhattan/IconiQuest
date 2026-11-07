@@ -1,0 +1,24 @@
+[submodule "lib/imgui"]
+	path = lib/imgui
+	url = https://github.com/ocornut/imgui.git
+	branch = docking
+
+[submodule "lib/SDL3"]
+	path = lib/SDL3
+	url = https://github.com/libsdl-org/SDL.git
+	branch = release-3.4
+
+[submodule "lib/SDL_image"]
+	path = lib/SDL_image
+	url = https://github.com/libsdl-org/SDL_image.git
+	branch = release-3.4
+
+[submodule "lib/SDL_mixer"]
+	path = lib/SDL_mixer
+	url = https://github.com/libsdl-org/SDL_mixer.git
+	branch = release-3.2
+
+[submodule "lib/pugixml"]
+	path = lib/pugixml
+	url = https://github.com/zeux/pugixml.git
+	branch = master

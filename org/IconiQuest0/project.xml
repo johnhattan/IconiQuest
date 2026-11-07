@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<project>
+	<meta company="The Code Zone" />
+	<meta version="1.0.0" />
+	<meta title="IconiQuest0" />
+	<meta package="com.thecodezone.games.IconiQuest0Free" if="free" />
+	<meta package="com.thecodezone.games.IconiQuest0" unless="free" />
+
+	<app main="Main" />
+	<app path="exportfree" if="free" />
+	<app path="export" unless="free" />
+	<app file="IconiQuest0Free" if="free" />
+	<app file="IconiQuest0" unless="free" />
+
+	<window background="#000000" fps="60" />
+	<window width="720" height="540" if="desktop || flash" />
+	<window orientation="landscape" />
+
+	<source path="source" />
+
+	<!-- iOS params -->
+
+	<!-- Android params -->
+	<android minimum-sdk-version="10" target-sdk-version="16" />
+
+	<certificate path="embeds/AndroidKeystore_release.keystore" alias="The Code Zone" if="android" unless="debug" />
+	<template path="embeds/AndroidManifest_release.xml" rename="AndroidManifest.xml" if="android" unless="debug || free" />
+	<template path="embeds/AndroidManifest_releasefree.xml" rename="AndroidManifest.xml" if="android free" unless="debug" />
+
+	<setenv name="GOOGLE_PLAY_GAMES_ID" value="905936806227" />
+
+	<!-- classpath -->
+	<classpath name="../_czlib" />
+
+	<!-- haxe libs -->
+<!--	<set name="openfl-legacy" /> -->
+	
+	<haxelib name="openfl" />
+	<haxelib name="actuate" />
+	<haxelib name="svg" />
+	<haxelib name="haxe-format-tiled" />
+	<haxelib name="openfl-admob" if="free" />
+	<haxelib name="openfl-gpg" if="GPG" />
+	<haxelib name="gamecenter" if="ios" />
+
+	<haxedef name="webgl" />
+
+	<!-- run-time assets -->
+	<assets path="assets/fonts" rename="assets" embed="true" include="*" />
+	<assets path="assets/images" rename="assets" embed="true" include="*" />
+	<assets path="assets/maps" rename="assets" embed="true" include="*" />
+	<assets path="assets/sounds" rename="assets" embed="true" include="*.mp3" if="flash || ios" />
+	<assets path="assets/sounds" rename="assets" embed="true" include="*.ogg" unless="flash || ios" />
+
+	<!-- embedded stuff, splash screens and icons -->
+	<icon path="embeds/iconfree_1024x1024.png" size="1024" if="free" />
+	<icon path="embeds/icon_1024x1024.png" size="1024" unless="free" />
+
+	<launchImage path="embeds/Default.png" width="320" height="480" />
+	<launchImage path="embeds/Default@2x.png" width="640" height="960" />
+	<launchImage path="embeds/Default-568h@2x.png" width="640" height="1136" />
+	<launchImage path="embeds/Default-Portrait.png" width="768" height="1024" />
+	<launchImage path="embeds/Default-Portrait@2x.png" width="1536" height="2048" />
+</project>

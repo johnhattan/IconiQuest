@@ -1,0 +1,36 @@
+# Build artifacts
+build/
+*.o
+*.a
+*.so
+*.dylib
+*.lib
+*.dll
+*.exe
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ImGui
+imgui.ini
+
+# CMake
+CMakeUserPresets.json
+
+# Dependencies (we'll rebuild these)
+lib/SDL3/
+lib/SDL_image/
+lib/SDL_mixer/
+
+# Executable
+/iconiquest
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
