@@ -1,8 +1,55 @@
 #include "Editor.hpp"
 #include "GlyphCache.hpp"
 #include "AudioEngine.hpp"
+#include <SDL3/SDL.h>
 #include <vector>
 #include <algorithm>
+#include <filesystem>
+
+namespace {
+std::vector<std::filesystem::path> candidateAssetRoots() {
+    std::vector<std::filesystem::path> roots;
+    roots.push_back(std::filesystem::current_path());
+
+    const char* basePathRaw = SDL_GetBasePath();
+    if (basePathRaw) {
+        std::filesystem::path basePath(basePathRaw);
+        roots.push_back(basePath);
+        roots.push_back(basePath / "..");
+    }
+
+    roots.push_back(std::filesystem::path("org"));
+    roots.push_back(std::filesystem::path(".."));
+    return roots;
+}
+
+std::filesystem::path resolveGameAssetDir(const std::string& gameName) {
+    const std::vector<std::pair<std::string, std::vector<std::string>>> bundleCandidates = {
+        {"mansion", {"assets/mansion", "org/IconiQuest0/assets"}},
+        {"dino",   {"assets/dino",   "org/IconiQuest1/assets"}},
+    };
+
+    for (const auto& [name, candidates] : bundleCandidates) {
+        if (name != gameName) continue;
+        for (const auto& root : candidateAssetRoots()) {
+            for (const auto& candidate : candidates) {
+                auto candidatePath = (root / candidate).lexically_normal();
+                if (std::filesystem::exists(candidatePath / "maps" / "mapMain.tmx") &&
+                    std::filesystem::exists(candidatePath / "images") &&
+                    std::filesystem::exists(candidatePath / "sounds")) {
+                    return candidatePath;
+                }
+            }
+        }
+    }
+
+    return std::filesystem::path("assets") / gameName;
+}
+
+std::filesystem::path resolveGameMapPath(const std::string& gameName) {
+    return resolveGameAssetDir(gameName) / "maps" / "mapMain.tmx";
+}
+}
 
 Editor::Editor(World& world) : m_world(world) {}
 
@@ -21,11 +68,10 @@ void Editor::renderTopBar() {
         const char* games[] = {"Mansion (IconiQuest 0)", "Dino Island (IconiQuest 1)"};
         ImGui::SetNextItemWidth(210);
         if (ImGui::Combo("##GameSelect", &m_currentGameIndex, games, 2)) {
-            if (m_currentGameIndex == 0) {
-                m_world.load("assets/mansion/maps/mapMain.tmx", "assets/mansion");
-            } else {
-                m_world.load("assets/dino/maps/mapMain.tmx", "assets/dino");
-            }
+            std::string gameName = (m_currentGameIndex == 0) ? "mansion" : "dino";
+            auto assetsDir = resolveGameAssetDir(gameName).string();
+            auto mapPath = resolveGameMapPath(gameName).string();
+            m_world.load(mapPath, assetsDir);
             m_selectedActor = nullptr;
         }
 
