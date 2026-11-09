@@ -150,7 +150,7 @@ bool World::isItemInInventory(const Actor* actor) const {
     return false;
 }
 
-bool World::handleMouseDown(const Vec2& screenPt) {
+bool World::handleMouseDown(const f32Point& screenPt) {
     m_mouseScreenPos = screenPt;
 
     // 1. Check Inventory Button click (top right)
@@ -186,7 +186,7 @@ bool World::handleMouseDown(const Vec2& screenPt) {
 
     // 3. Check Actors in Current Room
     if (m_currentLocation && !m_camera.isTransitioning()) {
-        Vec2 worldPt = m_camera.screenToWorld(screenPt);
+        f32Point worldPt = m_camera.screenToWorld(screenPt);
 
         Actor* closestDraggable = nullptr;
         float minDist = 99999.0f;
@@ -215,11 +215,11 @@ bool World::handleMouseDown(const Vec2& screenPt) {
     return false;
 }
 
-void World::handleMouseMove(const Vec2& screenPt) {
+void World::handleMouseMove(const f32Point& screenPt) {
     m_mouseScreenPos = screenPt;
 }
 
-bool World::handleMouseUp(const Vec2& screenPt, int numTaps) {
+bool World::handleMouseUp(const f32Point& screenPt, int numTaps) {
     m_mouseScreenPos = screenPt;
 
     // If dragging an item, handle drop
@@ -243,7 +243,7 @@ bool World::handleMouseUp(const Vec2& screenPt, int numTaps) {
 
         // Check if dropped onto another actor in current room
         if (m_currentLocation) {
-            Vec2 worldPt = m_camera.screenToWorld(screenPt);
+            f32Point worldPt = m_camera.screenToWorld(screenPt);
             for (const auto& a : m_currentLocation->getActors()) {
                 if (!a || a.get() == dragged || a->isHidden() || isItemInInventory(a.get())) continue;
 
@@ -264,7 +264,7 @@ bool World::handleMouseUp(const Vec2& screenPt, int numTaps) {
 
     // Standard Tap / Click
     if (m_currentLocation && !m_camera.isTransitioning()) {
-        Vec2 worldPt = m_camera.screenToWorld(screenPt);
+        f32Point worldPt = m_camera.screenToWorld(screenPt);
 
         Actor* closestActor = nullptr;
         float minDist = 99999.0f;
@@ -307,7 +307,7 @@ void World::update(float dt) {
 
 void World::render(SDL_Renderer* renderer) {
     // 1. Draw Room Background
-    ColorRGBA bgColor = m_currentLocation ? m_currentLocation->getBackgroundColor() : ColorRGBA{15, 15, 20, 255};
+    Color bgColor = m_currentLocation ? m_currentLocation->getBackgroundColor() : Color{15, 15, 20, 255};
     SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
     SDL_RenderClear(renderer);
 
@@ -359,7 +359,7 @@ void World::render(SDL_Renderer* renderer) {
 void World::renderNoteBubble(SDL_Renderer* renderer) {
     if (!m_noteAnchorActor || m_activeNotes.empty()) return;
 
-    Vec2 anchorScreen = m_camera.worldToScreen(m_noteAnchorActor->getPos());
+    f32Point anchorScreen = m_camera.worldToScreen(m_noteAnchorActor->getPos());
     float iconSize = 40.0f;
     float padding = 10.0f;
     float totalW = m_activeNotes.size() * (iconSize + padding) + padding;

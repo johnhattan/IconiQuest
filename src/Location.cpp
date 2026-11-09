@@ -66,10 +66,10 @@ void Location::takeActor(Actor* actor) {
     }
 }
 
-ColorRGBA Location::getBackgroundColor() const {
+Color Location::getBackgroundColor() const {
     std::string hex = m_props.get("colorBackground");
     if (!hex.empty()) {
-        return ColorRGBA::fromHex(hex, {15, 15, 20, 255});
+        return Color::fromHex(hex, {15, 15, 20, 255});
     }
     return {15, 15, 20, 255};
 }

@@ -152,7 +152,7 @@ bool TmxLoader::saveWorld(const World& world, const std::string& tmxPath) {
                 objNode.append_attribute("gid") = "1";
             }
 
-            Vec2 p = actor->getPos();
+            f32Point p = actor->getPos();
             float w = actor->getWidth();
             float h = actor->getHeight();
             objNode.attribute("x") = p.x - w * 0.5f;

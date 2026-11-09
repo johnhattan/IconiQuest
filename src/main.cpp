@@ -202,7 +202,7 @@ int main(int argc, char* argv[]) {
         std::cout << "[Test] Confirmed: glyphCopyright revealed after second click on table." << std::endl;
 
         // Click rug: reveals key and shifts rug
-        Vec2 rugOrgPos = rug->getOrgPos();
+        f32Point rugOrgPos = rug->getOrgPos();
         float deltaX = rug->props().getFloat("revealDeltaX", 0.0f);
         rug->onTap(1);
         if (key->isHidden()) {
@@ -270,7 +270,7 @@ int main(int argc, char* argv[]) {
             if (!io.WantCaptureMouse) {
                 if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
                     if (event.button.button == SDL_BUTTON_LEFT) {
-                        world.handleMouseDown({event.button.x, event.button.y});
+                        world.handleMouseDown({(float)event.button.x, (float)event.button.y});
                     }
                 } else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) {
                     if (event.button.button == SDL_BUTTON_LEFT) {
@@ -283,10 +283,10 @@ int main(int argc, char* argv[]) {
                             lastClickTime = currentMs;
                         }
 
-                        world.handleMouseUp({event.button.x, event.button.y}, taps);
+                        world.handleMouseUp({(float)event.button.x, (float)event.button.y}, taps);
                     }
                 } else if (event.type == SDL_EVENT_MOUSE_MOTION) {
-                    world.handleMouseMove({event.motion.x, event.motion.y});
+                    world.handleMouseMove({(float)event.motion.x, (float)event.motion.y});
                 }
             }
         }

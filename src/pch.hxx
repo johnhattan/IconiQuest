@@ -216,9 +216,6 @@ typedef Point<i64> i64Point;
 typedef Point<f32> f32Point;
 typedef Point<f64> f64Point;
 
-// Backward compatibility alias
-using Vec2 = f32Point;
-
 template <typename T> struct Rect
 {
 	T x = 0, y = 0, w = 0, h = 0;
@@ -340,18 +337,14 @@ typedef Rect<i64> i64Rect;
 typedef Rect<f32> f32Rect;
 typedef Rect<f64> f64Rect;
 
-// Deduction guide for backward compat: Rect(x, y, w, h) deduces to Rect<f32>
-template <typename T>
-Rect(T, T, T, T) -> Rect<T>;
-
-struct ColorRGBA
+struct Color
 {
 	u8 r = 0;
 	u8 g = 0;
 	u8 b = 0;
 	u8 a = 255;
 
-	static ColorRGBA fromHex(const std::string& hexStr, ColorRGBA fallback = {0, 0, 0, 255})
+	static Color fromHex(const std::string& hexStr, Color fallback = {0, 0, 0, 255})
 	{
 		if (hexStr.empty())
 			return fallback;
@@ -388,22 +381,123 @@ struct ColorRGBA
 	}
 };
 
-// Backward compatibility: map old function names to new Point/Rect methods
-namespace compat
-{
-	[[maybe_unused]] inline f32 distance(const Vec2& a, const Vec2& b)
-	{
-		Vec2 delta = a - b;
-		return std::sqrt(delta.x * delta.x + delta.y * delta.y);
-	}
-
-	[[maybe_unused]] inline bool contains(const f32Rect& rect, const Vec2& pt)
-	{
-		return rect.Contains(pt);
-	}
-
-	[[maybe_unused]] inline Vec2 center(const f32Rect& rect)
-	{
-		return rect.Center();
-	}
-} // namespace compat
+namespace Colors
+{ // CSS Named Colors that aren't in raylib.h
+	inline constexpr Color AliceBlue{ 240, 248, 255, 255 };
+	inline constexpr Color AntiqueWhite{ 250, 235, 215, 255 };
+	inline constexpr Color Aquamarine{ 127, 255, 212, 255 };
+	inline constexpr Color Azure{ 240, 255, 255, 255 };
+	inline constexpr Color Bisque{ 255, 228, 196, 255 };
+	inline constexpr Color BlanchedAlmond{ 255, 235, 205, 255 };
+	inline constexpr Color BlueViolet{ 138, 43, 226, 255 };
+	inline constexpr Color Burlywood{ 222, 184, 135, 255 };
+	inline constexpr Color CadetBlue{ 95, 158, 160, 255 };
+	inline constexpr Color Chartreuse{ 127, 255, 0, 255 };
+	inline constexpr Color Chocolate{ 210, 105, 30, 255 };
+	inline constexpr Color Coral{ 255, 127, 80, 255 };
+	inline constexpr Color CornflowerBlue{ 100, 149, 237, 255 };
+	inline constexpr Color Cornsilk{ 255, 248, 220, 255 };
+	inline constexpr Color Crimson{ 220, 20, 60, 255 };
+	inline constexpr Color Cyan{ 0, 255, 255, 255 };
+	inline constexpr Color DarkBlue{ 0, 0, 139, 255 };
+	inline constexpr Color DarkCyan{ 0, 139, 139, 255 };
+	inline constexpr Color DarkGoldenrod{ 184, 134, 11, 255 };
+	inline constexpr Color DarkGreen{ 0, 100, 0, 255 };
+	inline constexpr Color DarkKhaki{ 189, 183, 107, 255 };
+	inline constexpr Color DarkMagenta{ 139, 0, 139, 255 };
+	inline constexpr Color DarkOliveGreen{ 85, 107, 47, 255 };
+	inline constexpr Color DarkOrange{ 255, 140, 0, 255 };
+	inline constexpr Color DarkOrchid{ 153, 50, 204, 255 };
+	inline constexpr Color DarkRed{ 139, 0, 0, 255 };
+	inline constexpr Color DarkSalmon{ 233, 150, 122, 255 };
+	inline constexpr Color DarkSeaGreen{ 143, 188, 143, 255 };
+	inline constexpr Color DarkSlateBlue{ 72, 61, 139, 255 };
+	inline constexpr Color DarkSlateGray{ 47, 79, 79, 255 };
+	inline constexpr Color DarkTurquoise{ 0, 206, 209, 255 };
+	inline constexpr Color DarkViolet{ 148, 0, 211, 255 };
+	inline constexpr Color DeepPink{ 255, 20, 147, 255 };
+	inline constexpr Color DeepSkyBlue{ 0, 191, 255, 255 };
+	inline constexpr Color DimGray{ 105, 105, 105, 255 };
+	inline constexpr Color DodgerBlue{ 30, 144, 255, 255 };
+	inline constexpr Color Firebrick{ 178, 34, 34, 255 };
+	inline constexpr Color FloralWhite{ 255, 250, 240, 255 };
+	inline constexpr Color ForestGreen{ 34, 139, 34, 255 };
+	inline constexpr Color Gainsboro{ 220, 220, 220, 255 };
+	inline constexpr Color GhostWhite{ 248, 248, 255, 255 };
+	inline constexpr Color Goldenrod{ 218, 165, 32, 255 };
+	inline constexpr Color GreenYellow{ 173, 255, 47, 255 };
+	inline constexpr Color Honeydew{ 240, 255, 240, 255 };
+	inline constexpr Color HotPink{ 255, 105, 180, 255 };
+	inline constexpr Color IndianRed{ 205, 92, 92, 255 };
+	inline constexpr Color Indigo{ 75, 0, 130, 255 };
+	inline constexpr Color Ivory{ 255, 255, 240, 255 };
+	inline constexpr Color Khaki{ 240, 230, 140, 255 };
+	inline constexpr Color Lavender{ 230, 230, 250, 255 };
+	inline constexpr Color LavenderBlush{ 255, 240, 245, 255 };
+	inline constexpr Color LawnGreen{ 124, 252, 0, 255 };
+	inline constexpr Color LemonChiffon{ 255, 250, 205, 255 };
+	inline constexpr Color LightBlue{ 173, 216, 230, 255 };
+	inline constexpr Color LightCoral{ 240, 128, 128, 255 };
+	inline constexpr Color LightCyan{ 224, 255, 255, 255 };
+	inline constexpr Color LightGoldenrodYellow{ 250, 250, 210, 255 };
+	inline constexpr Color LightGreen{ 144, 238, 144, 255 };
+	inline constexpr Color LightPink{ 255, 182, 193, 255 };
+	inline constexpr Color LightSalmon{ 255, 160, 122, 255 };
+	inline constexpr Color LightSeaGreen{ 32, 178, 170, 255 };
+	inline constexpr Color LightSkyBlue{ 135, 206, 250, 255 };
+	inline constexpr Color LightSlateGray{ 119, 136, 153, 255 };
+	inline constexpr Color LightSteelBlue{ 176, 196, 222, 255 };
+	inline constexpr Color LightYellow{ 255, 255, 224, 255 };
+	inline constexpr Color LimeGreen{ 50, 205, 50, 255 };
+	inline constexpr Color Linen{ 250, 240, 230, 255 };
+	inline constexpr Color MediumAquamarine{ 102, 205, 170, 255 };
+	inline constexpr Color MediumBlue{ 0, 0, 205, 255 };
+	inline constexpr Color MediumOrchid{ 186, 85, 211, 255 };
+	inline constexpr Color MediumPurple{ 147, 112, 219, 255 };
+	inline constexpr Color MediumSeaGreen{ 60, 179, 113, 255 };
+	inline constexpr Color MediumSlateBlue{ 123, 104, 238, 255 };
+	inline constexpr Color MediumSpringGreen{ 0, 250, 154, 255 };
+	inline constexpr Color MediumTurquoise{ 72, 209, 204, 255 };
+	inline constexpr Color MediumVioletRed{ 199, 21, 133, 255 };
+	inline constexpr Color MidnightBlue{ 25, 25, 112, 255 };
+	inline constexpr Color MintCream{ 245, 255, 250, 255 };
+	inline constexpr Color MistyRose{ 255, 228, 225, 255 };
+	inline constexpr Color Moccasin{ 255, 228, 181, 255 };
+	inline constexpr Color NavajoWhite{ 255, 222, 173, 255 };
+	inline constexpr Color OldLace{ 253, 245, 230, 255 };
+	inline constexpr Color OliveDrab{ 107, 142, 35, 255 };
+	inline constexpr Color OrangeRed{ 255, 69, 0, 255 };
+	inline constexpr Color Orchid{ 218, 112, 214, 255 };
+	inline constexpr Color PaleGoldenrod{ 238, 232, 170, 255 };
+	inline constexpr Color PaleGreen{ 152, 251, 152, 255 };
+	inline constexpr Color PaleTurquoise{ 175, 238, 238, 255 };
+	inline constexpr Color PaleVioletRed{ 219, 112, 147, 255 };
+	inline constexpr Color PapayaWhip{ 255, 239, 213, 255 };
+	inline constexpr Color PeachPuff{ 255, 218, 185, 255 };
+	inline constexpr Color Peru{ 205, 133, 63, 255 };
+	inline constexpr Color Plum{ 221, 160, 221, 255 };
+	inline constexpr Color PowderBlue{ 176, 224, 230, 255 };
+	inline constexpr Color RebeccaPurple{ 102, 51, 153, 255 };
+	inline constexpr Color RosyBrown{ 188, 143, 143, 255 };
+	inline constexpr Color RoyalBlue{ 65, 105, 225, 255 };
+	inline constexpr Color SaddleBrown{ 139, 69, 19, 255 };
+	inline constexpr Color Salmon{ 250, 128, 114, 255 };
+	inline constexpr Color SandyBrown{ 244, 164, 96, 255 };
+	inline constexpr Color SeaGreen{ 46, 139, 87, 255 };
+	inline constexpr Color Seashell{ 255, 245, 238, 255 };
+	inline constexpr Color Sienna{ 160, 82, 45, 255 };
+	inline constexpr Color SkyBlue{ 135, 206, 235, 255 };
+	inline constexpr Color SlateBlue{ 106, 90, 205, 255 };
+	inline constexpr Color SlateGray{ 112, 128, 144, 255 };
+	inline constexpr Color Snow{ 255, 250, 250, 255 };
+	inline constexpr Color SpringGreen{ 0, 255, 127, 255 };
+	inline constexpr Color SteelBlue{ 70, 130, 180, 255 };
+	inline constexpr Color Tan{ 210, 180, 140, 255 };
+	inline constexpr Color Thistle{ 216, 191, 216, 255 };
+	inline constexpr Color Tomato{ 255, 99, 71, 255 };
+	inline constexpr Color Turquoise{ 64, 224, 208, 255 };
+	inline constexpr Color Violet{ 238, 130, 238, 255 };
+	inline constexpr Color Wheat{ 245, 245, 220, 255 };
+	inline constexpr Color WhiteSmoke{ 245, 245, 245, 255 };
+	inline constexpr Color YellowGreen{ 154, 205, 50, 255 };
+} // namespace Colors

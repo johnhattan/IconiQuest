@@ -31,7 +31,7 @@ public:
     std::unique_ptr<Actor> removeActor(Actor* actor);
     void takeActor(Actor* actor);
 
-    ColorRGBA getBackgroundColor() const;
+    Color getBackgroundColor() const;
     void revert();
     void render(SDL_Renderer* renderer, float alpha = 1.0f);
 

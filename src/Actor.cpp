@@ -20,20 +20,20 @@ Actor::Actor(
     m_props.setOrg("height", std::to_string(height));
 }
 
-Vec2 Actor::getPos() const {
+f32Point Actor::getPos() const {
     return {
         m_props.getFloat("x", m_orgPos.x),
         m_props.getFloat("y", m_orgPos.y)
     };
 }
 
-void Actor::setPos(const Vec2& pos) {
+void Actor::setPos(const f32Point& pos) {
     m_props.setFloat("x", pos.x);
     m_props.setFloat("y", pos.y);
 }
 
 f32Rect Actor::getBounds() const {
-    Vec2 p = getPos();
+    f32Point p = getPos();
     return {
         p.x - m_width * 0.5f,
         p.y - m_height * 0.5f,

@@ -44,9 +44,9 @@ public:
     bool isItemInInventory(const Actor* actor) const;
 
     // Input
-    bool handleMouseDown(const Vec2& screenPt);
-    bool handleMouseUp(const Vec2& screenPt, int numTaps = 1);
-    void handleMouseMove(const Vec2& screenPt);
+    bool handleMouseDown(const f32Point& screenPt);
+    bool handleMouseUp(const f32Point& screenPt, int numTaps = 1);
+    void handleMouseMove(const f32Point& screenPt);
 
     void update(float dt);
     void render(SDL_Renderer* renderer);
@@ -71,8 +71,8 @@ private:
 
     // Dragging
     Actor* m_actorBeingDragged = nullptr;
-    Vec2 m_dragOffset;
-    Vec2 m_mouseScreenPos;
+    f32Point m_dragOffset;
+    f32Point m_mouseScreenPos;
 
     // Note Bubble
     Actor* m_noteAnchorActor = nullptr;

@@ -43,7 +43,7 @@ public:
         float scaleX = (m_viewW * 0.90f) / target.w;
         float scaleY = (m_viewH * 0.90f) / target.h;
         m_curScale = m_targetScale = std::min(scaleX, scaleY);
-        Vec2 c = target.center();
+        f32Point c = target.center();
         m_curX = m_targetPos.x = c.x;
         m_curY = m_targetPos.y = c.y;
         m_isTransitioning = false;
@@ -70,14 +70,14 @@ public:
         }
     }
 
-    Vec2 worldToScreen(const Vec2& worldPt) const {
+    f32Point worldToScreen(const f32Point& worldPt) const {
         return {
             (worldPt.x - m_curX) * m_curScale + m_viewW * 0.5f,
             (worldPt.y - m_curY) * m_curScale + m_viewH * 0.5f
         };
     }
 
-    Vec2 screenToWorld(const Vec2& screenPt) const {
+    f32Point screenToWorld(const f32Point& screenPt) const {
         return {
             (screenPt.x - m_viewW * 0.5f) / m_curScale + m_curX,
             (screenPt.y - m_viewH * 0.5f) / m_curScale + m_curY
@@ -85,12 +85,12 @@ public:
     }
 
     f32Rect worldToScreenRect(const f32Rect& r) const {
-        Vec2 tl = worldToScreen({r.x, r.y});
+        f32Point tl = worldToScreen({r.x, r.y});
         return {tl.x, tl.y, r.w * m_curScale, r.h * m_curScale};
     }
 
     float getScale() const { return m_curScale; }
-    Vec2 getCenter() const { return {m_curX, m_curY}; }
+    f32Point getCenter() const { return {m_curX, m_curY}; }
     bool isTransitioning() const { return m_isTransitioning; }
 
 private:
@@ -101,10 +101,10 @@ private:
     float m_curY = 0.0f;
     float m_curScale = 1.0f;
 
-    Vec2 m_startPos;
+    f32Point m_startPos;
     float m_startScale = 1.0f;
 
-    Vec2 m_targetPos;
+    f32Point m_targetPos;
     float m_targetScale = 1.0f;
 
     float m_timer = 0.0f;

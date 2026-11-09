@@ -29,9 +29,9 @@ public:
     PropertyDictionary& props() { return m_props; }
     const PropertyDictionary& props() const { return m_props; }
 
-    Vec2 getPos() const;
-    void setPos(const Vec2& pos);
-    Vec2 getOrgPos() const { return m_orgPos; }
+    f32Point getPos() const;
+    void setPos(const f32Point& pos);
+    f32Point getOrgPos() const { return m_orgPos; }
 
     float getWidth() const { return m_width; }
     float getHeight() const { return m_height; }
@@ -65,7 +65,7 @@ protected:
     Location* m_location = nullptr;
     PropertyDictionary m_props;
 
-    Vec2 m_orgPos;
+    f32Point m_orgPos;
     float m_width = 48.0f;
     float m_height = 48.0f;
 };
