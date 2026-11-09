@@ -129,7 +129,7 @@ bool TmxLoader::saveWorld(const World& world, const std::string& tmxPath) {
         }
 
         // Update Bounds
-        Rect b = loc->getBounds();
+        f32Rect b = loc->getBounds();
         pugi::xml_node boundsNode = groupNode.find_child_by_attribute("object", "name", "dimensions");
         if (!boundsNode) boundsNode = groupNode.find_child_by_attribute("object", "type", "Bounds");
         if (!boundsNode) {

@@ -22,14 +22,14 @@ public:
 
     void renderGlyph(
         const std::string& glyphName,
-        const Rect& dst,
+        const f32Rect& dst,
         float rotation = 0.0f,
         bool flipH = false,
         bool flipV = false,
         float alpha = 1.0f
     );
 
-    void renderBlankBackground(const Rect& dst, float alpha = 1.0f);
+    void renderBlankBackground(const f32Rect& dst, float alpha = 1.0f);
 
     void clear();
 

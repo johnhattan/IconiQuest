@@ -105,7 +105,7 @@ std::vector<std::string> GlyphCache::getAllGlyphs() {
     return results;
 }
 
-void GlyphCache::renderBlankBackground(const Rect& dst, float alpha) {
+void GlyphCache::renderBlankBackground(const f32Rect& dst, float alpha) {
     SDL_Texture* tex = getTexture("_blank");
     if (tex) {
         SDL_SetTextureAlphaModFloat(tex, alpha);
@@ -121,7 +121,7 @@ void GlyphCache::renderBlankBackground(const Rect& dst, float alpha) {
 
 void GlyphCache::renderGlyph(
     const std::string& glyphName,
-    const Rect& dst,
+    const f32Rect& dst,
     float rotation,
     bool flipH,
     bool flipV,

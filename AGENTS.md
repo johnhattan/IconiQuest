@@ -32,8 +32,16 @@ Rules:
 ## Architecture conventions
 
 ### Shared type foundation
-- `src/pch.hxx` is the shared core header for common geometry and primitive aliases.
-- `Vec2`, `Rect`, and `ColorRGBA` are the central value types; keep them stable and avoid scattered duplicate definitions.
+- `src/pch.hxx` is the shared core header for common geometry and primitive aliases (adapted from bom project).
+- **Numeric types**: `u8/u16/u32/u64`, `i8/i16/i32/i64`, `f32/f64`, `usize` with min/max constants.
+- **Geometry types**:
+  - `Point<T>` — templated 2D point with arithmetic operators and conversions. Aliases: `f32Point`, `Vec2` (backward compat).
+  - `Rect<T>` — templated rectangle with x/y/w/h. Methods: `Left()`, `Top()`, `Right()`, `Bottom()`, `Center()`, `Contains()`, `Normalized()`, `Union()`, `Intersection()`, `FromMinMax()`.
+  - `ColorRGBA` — 8-bit RGBA with hex parsing via `fromHex()`.
+- **Utility macros**:
+  - `endcase` — used in switch statements instead of break for clarity.
+  - `nullfn` — alias for `delete` to mark unavailable class functions.
+- **observer_ptr<T>** — non-owning smart pointer for references into externally-owned objects (World, Location, etc.); never delete through this type.
 - Prefer not to duplicate type declarations across files. If a type is broadly used, move it into the shared core header instead of local copies.
 - `src/Types.hpp` remains a compatibility wrapper for older includes; prefer `#include "pch.hxx"` for new code.
 
@@ -54,11 +62,39 @@ Rules:
 - Dear ImGui is used for editor/debug overlays, not for core gameplay logic.
 - Keep rendering code deterministic and free from hidden state tied to the build folder.
 
-### Coding style
-- C++20, RAII, `constexpr` where practical, and `const` correctness.
-- Prefer clear value semantics for small geometry types and avoid ad hoc object graphs when simple POD-like structs suffice.
-- Keep public API names consistent with the codebase (`PascalCase` for types, `camelCase` for local values, `m_`/`_` naming only when already used in the file).
-- Preserve repo-local dependency and asset conventions even when the code is being refactored or simplified.
+### Coding style (adapted from BOM)
+- **C++20**: Use `constexpr`, `enum class`, RAII, and `const` correctness.
+- **Header/impl consistency**: Keep headers `.hpp` and implementation `.cpp` consistent with existing codebase.
+- **Naming conventions**:
+  - `PascalCase` for types, structs, and classes.
+  - `camelCase` for local variables, function parameters, and member access functions.
+  - `m_` prefix for private member variables when consistent with existing file style (prefer modern approach).
+  - Use `= nullfn` (defined in `pch.hxx`) instead of `= delete` for explicitly unavailable class functions.
+- **Geometry types**: Prefer value semantics for `Point<T>`, `Rect<T>`, and `ColorRGBA`; avoid ad hoc object graphs.
+- **Pointer ownership**: Use `observer_ptr<T>` for non-owning references into objects owned elsewhere (World, Location, etc.); document ownership when introducing new pointers.
+- **Code formatting**: Use clang-format with `.clang-format` config (tabs, Microsoft style, `endcase` support).
+  - Brace wrapping: After function, class, struct, namespace, union, enum; before catch/else.
+  - Indentation: 4-space tabs; no column limit.
+- **Function/method style**:
+  - Return type on same line as function name.
+  - Opening brace on same line for constructors, on next line for function bodies.
+  - Prefer explicit copy/move semantics; default when appropriate via `= default`.
+- **Comments**: Only comment code that needs clarification; avoid obvious comments.
+- **Preserve repo-local conventions**: Never introduce automatic downloads, remote fetches, or network access during build.
+
+**Example (C++20 struct with value semantics)**:
+```cpp
+struct Actor
+{
+	Point<f32> position;
+	observer_ptr<Location> room;
+
+	Actor() = default;
+	Actor(const Point<f32>& pos, Location* r) : position(pos), room(r) {}
+
+	auto operator<=>(const Actor&) const = default;
+};
+```
 
 ## Typical workflows
 - Add new engine helpers to the shared `src` layer when they are useful across the project.

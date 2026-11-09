@@ -17,7 +17,7 @@ public:
     float getViewportWidth() const { return m_viewW; }
     float getViewportHeight() const { return m_viewH; }
 
-    void frameRect(const Rect& target, float duration = 0.75f) {
+    void frameRect(const f32Rect& target, float duration = 0.75f) {
         if (target.w <= 0.0f || target.h <= 0.0f) return;
 
         m_startPos = {m_curX, m_curY};
@@ -38,7 +38,7 @@ public:
         }
     }
 
-    void instantFrame(const Rect& target) {
+    void instantFrame(const f32Rect& target) {
         if (target.w <= 0.0f || target.h <= 0.0f) return;
         float scaleX = (m_viewW * 0.90f) / target.w;
         float scaleY = (m_viewH * 0.90f) / target.h;
@@ -84,7 +84,7 @@ public:
         };
     }
 
-    Rect worldToScreenRect(const Rect& r) const {
+    f32Rect worldToScreenRect(const f32Rect& r) const {
         Vec2 tl = worldToScreen({r.x, r.y});
         return {tl.x, tl.y, r.w * m_curScale, r.h * m_curScale};
     }

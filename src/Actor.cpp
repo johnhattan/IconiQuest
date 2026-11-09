@@ -32,7 +32,7 @@ void Actor::setPos(const Vec2& pos) {
     m_props.setFloat("y", pos.y);
 }
 
-Rect Actor::getBounds() const {
+f32Rect Actor::getBounds() const {
     Vec2 p = getPos();
     return {
         p.x - m_width * 0.5f,

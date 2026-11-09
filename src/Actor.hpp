@@ -37,7 +37,7 @@ public:
     float getHeight() const { return m_height; }
     void setSize(float w, float h) { m_width = w; m_height = h; }
 
-    Rect getBounds() const;
+    f32Rect getBounds() const;
     bool isHidden() const;
     void setHidden(bool hidden);
 

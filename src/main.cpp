@@ -8,7 +8,6 @@
 #include "GlyphCache.hpp"
 #include "AudioEngine.hpp"
 #include "World.hpp"
-#include "Editor.hpp"
 
 #include <iostream>
 #include <chrono>
@@ -132,8 +131,6 @@ int main(int argc, char* argv[]) {
 
     World world;
     world.getCamera().setViewportSize((float)windowWidth, (float)windowHeight);
-
-    Editor editor(world);
 
     bool headlessTest = false;
     for (int i = 1; i < argc; ++i) {
@@ -262,11 +259,7 @@ int main(int argc, char* argv[]) {
             if (event.type == SDL_EVENT_QUIT) {
                 running = false;
             } else if (event.type == SDL_EVENT_KEY_DOWN) {
-                if (event.key.key == SDLK_F1) {
-                    editor.toggle();
-                } else if (event.key.key == SDLK_ESCAPE) {
-                    if (editor.isEnabled()) editor.setEnabled(false);
-                }
+                // Key handling removed (editor toggle was here)
             } else if (event.type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED || event.type == SDL_EVENT_WINDOW_RESIZED) {
                 int w, h;
                 SDL_GetWindowSize(window, &w, &h);
@@ -308,8 +301,6 @@ int main(int argc, char* argv[]) {
         ImGui_ImplSDLRenderer3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
-
-        editor.renderUI();
 
         ImGui::Render();
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);

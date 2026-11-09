@@ -20,8 +20,8 @@ public:
     PropertyDictionary& props() { return m_props; }
     const PropertyDictionary& props() const { return m_props; }
 
-    Rect getBounds() const { return m_bounds; }
-    void setBounds(const Rect& bounds) { m_bounds = bounds; }
+    f32Rect getBounds() const { return m_bounds; }
+    void setBounds(const f32Rect& bounds) { m_bounds = bounds; }
 
     const std::vector<std::unique_ptr<Actor>>& getActors() const { return m_actors; }
     std::vector<std::unique_ptr<Actor>>& getActors() { return m_actors; }
@@ -39,6 +39,6 @@ private:
     std::string m_name;
     World* m_world = nullptr;
     PropertyDictionary m_props;
-    Rect m_bounds;
+    f32Rect m_bounds;
     std::vector<std::unique_ptr<Actor>> m_actors;
 };
