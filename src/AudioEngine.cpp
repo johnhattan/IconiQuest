@@ -1,11 +1,8 @@
+#include "pch.hxx"
 #include "AudioEngine.hpp"
 
 #include <SDL3/SDL.h>
 #include <SDL3_mixer/SDL_mixer.h>
-
-#include <filesystem>
-#include <iostream>
-#include <vector>
 
 struct AudioEngine::Impl {
     MIX_Mixer* mixer = nullptr;

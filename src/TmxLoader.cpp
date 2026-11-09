@@ -1,6 +1,6 @@
+#include "pch.hxx"
 #include "TmxLoader.hpp"
 #include <pugixml.hpp>
-#include <iostream>
 
 bool TmxLoader::loadWorld(World& world, const std::string& tmxPath) {
     pugi::xml_document doc;

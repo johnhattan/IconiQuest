@@ -1,7 +1,6 @@
 #pragma once
 
-#include <string>
-#include <memory>
+#include "pch.hxx"
 #include "World.hpp"
 
 class TmxLoader {

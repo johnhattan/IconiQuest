@@ -1,9 +1,8 @@
+#include "pch.hxx"
 #include "World.hpp"
 #include "TmxLoader.hpp"
 #include "GlyphCache.hpp"
 #include "AudioEngine.hpp"
-#include <iostream>
-#include <cmath>
 
 World::World() : m_camera(800.0f, 600.0f) {}
 

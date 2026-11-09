@@ -1,6 +1,5 @@
+#include "pch.hxx"
 #include "GlyphCache.hpp"
-#include <filesystem>
-#include <iostream>
 
 GlyphCache& GlyphCache::instance() {
     static GlyphCache inst;

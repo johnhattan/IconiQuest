@@ -1,8 +1,6 @@
 #pragma once
 
 #include "pch.hxx"
-#include <algorithm>
-#include <cmath>
 
 class Camera {
 public:

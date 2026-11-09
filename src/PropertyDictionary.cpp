@@ -1,6 +1,5 @@
+#include "pch.hxx"
 #include "PropertyDictionary.hpp"
-#include <algorithm>
-#include <set>
 
 bool PropertyDictionary::has(const std::string& key) const {
     return m_deltas.find(key) != m_deltas.end() || m_org.find(key) != m_org.end();

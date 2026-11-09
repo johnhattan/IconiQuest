@@ -1,7 +1,7 @@
+#include "pch.hxx"
 #include "Location.hpp"
 #include "Actor.hpp"
 #include "World.hpp"
-#include <algorithm>
 
 Location::Location(const std::string& name, World* world)
     : m_name(name), m_world(world) {}

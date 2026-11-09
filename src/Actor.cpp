@@ -1,9 +1,9 @@
+#include "pch.hxx"
 #include "Actor.hpp"
 #include "Location.hpp"
 #include "World.hpp"
 #include "GlyphCache.hpp"
 #include "AudioEngine.hpp"
-#include <iostream>
 
 Actor::Actor(
     const std::string& name,

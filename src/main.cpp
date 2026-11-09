@@ -1,17 +1,12 @@
+#include "pch.hxx"
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
-
-#include "pch.hxx"
 #include "GlyphCache.hpp"
 #include "AudioEngine.hpp"
 #include "World.hpp"
-
-#include <iostream>
-#include <chrono>
-#include <filesystem>
 
 namespace {
 std::vector<std::filesystem::path> candidateAssetRoots() {

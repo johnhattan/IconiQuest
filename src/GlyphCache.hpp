@@ -1,11 +1,8 @@
 #pragma once
 
+#include "pch.hxx"
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
-#include <string>
-#include <unordered_map>
-#include <vector>
-#include "pch.hxx"
 
 class GlyphCache {
 public:
