@@ -4,7 +4,7 @@
 IconiQuest is a native C++20 game project built around SDL3, Dear ImGui, SDL_image, SDL_mixer, and pugixml. The repo is intentionally deterministic: dependencies live under `lib/` as git submodules, runtime assets live under repo-root `assets/`, and the build must not fetch code from the network at configure time.
 
 The game architecture is centered around a minimal shared game layer in `src/`:
-- `src/pch.hxx` is the canonical shared foundation for geometry, primitive aliases, and low-level types.
+- `src/pch.hpp` is the canonical shared foundation for geometry, primitive aliases, and low-level types.
 - `src/*.hpp` and `src/*.cpp` implement the world, editor, locations, actors, property system, and TMX/asset loading.
 - `assets/mansion` and `assets/dino` are the canonical runtime data bundles; legacy `org/.../assets` paths are backup-only compatibility fallbacks and should not be treated as the primary project layout.
 
@@ -32,8 +32,8 @@ Rules:
 ## Architecture conventions
 
 ### Shared type foundation
-- `src/pch.hxx` is the shared core header. **All .cpp and .hpp files must `#include "pch.hxx"` as the first include.**
-- **STL headers**: All standard library includes (algorithm, array, chrono, cmath, cstdint, filesystem, fstream, iostream, limits.h, memory, set, sstream, string, string_view, unordered_map, vector) are consolidated in pch.hxx. Do not repeat them locally.
+- `src/pch.hpp` is the shared core header. **All .cpp and .hpp files must `#include "pch.hpp"` as the first include.**
+- **STL headers**: All standard library includes (algorithm, array, chrono, cmath, cstdint, filesystem, fstream, iostream, limits.h, memory, set, sstream, string, string_view, unordered_map, vector) are consolidated in pch.hpp. Do not repeat them locally.
 - **Numeric types**: `u8/u16/u32/u64`, `i8/i16/i32/i64`, `f32/f64`, `usize` with min/max constants.
 - **Geometry types**:
   - `Point<T>` — templated 2D point with arithmetic operators and conversions. Aliases: `f32Point` (primary), `i32Point`, `Vec2` (backward compat).
@@ -44,11 +44,11 @@ Rules:
   - `nullfn` — alias for `delete` to mark unavailable class functions.
 - **observer_ptr<T>** — non-owning smart pointer for references into externally-owned objects (World, Location, etc.); never delete through this type.
 - Prefer not to duplicate type declarations across files. If a type is broadly used, move it into the shared core header instead of local copies.
-- `src/Types.hpp` remains a compatibility wrapper for older includes; prefer `#include "pch.hxx"` for new code.
+- `src/Types.hpp` remains a compatibility wrapper for older includes; prefer `#include "pch.hpp"` for new code.
 
 **Include order** (enforced):
-1. `#include "pch.hxx"` — always first, provides all STL, type aliases, geometry
-2. Third-party headers (`<SDL3/SDL.h>`, `<pugixml.hpp>`, etc.) — only if not in pch.hxx
+1. `#include "pch.hpp"` — always first, provides all STL, type aliases, geometry
+2. Third-party headers (`<SDL3/SDL.h>`, `<pugixml.hpp>`, etc.) — only if not in pch.hpp
 3. Project headers (`#include "Actor.hpp"`, etc.) — last
 
 ### Ownership and data flow
@@ -75,7 +75,7 @@ Rules:
   - `PascalCase` for types, structs, and classes.
   - `camelCase` for local variables, function parameters, and member access functions.
   - `m_` prefix for private member variables when consistent with existing file style (prefer modern approach).
-  - Use `= nullfn` (defined in `pch.hxx`) instead of `= delete` for explicitly unavailable class functions.
+  - Use `= nullfn` (defined in `pch.hpp`) instead of `= delete` for explicitly unavailable class functions.
 - **Geometry types**: Prefer value semantics for `Point<T>`, `Rect<T>`, and `Color`; avoid ad hoc object graphs.
 - Prefer `f32Point` for screen/world coordinates; use `i32Point` when integer semantics are needed (e.g., tile indices).
 - **Pointer ownership**: Use `observer_ptr<T>` for non-owning references into objects owned elsewhere (World, Location, etc.); document ownership when introducing new pointers.

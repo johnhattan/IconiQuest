@@ -1,4 +1,4 @@
-#include "pch.hxx"
+#include "pch.hpp"
 #include "AudioEngine.hpp"
 
 #include <SDL3/SDL.h>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pch.hxx"
+#include "pch.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 

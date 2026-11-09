@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pch.hxx"
+#include "pch.hpp"
 #include "PropertyDictionary.hpp"
 #include "Camera.hpp"
 #include "Location.hpp"

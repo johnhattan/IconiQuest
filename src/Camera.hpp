@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pch.hxx"
+#include "pch.hpp"
 
 class Camera {
 public:

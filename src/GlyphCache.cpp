@@ -1,4 +1,4 @@
-#include "pch.hxx"
+#include "pch.hpp"
 #include "GlyphCache.hpp"
 
 GlyphCache& GlyphCache::instance() {
