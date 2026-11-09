@@ -389,7 +389,28 @@ struct Color
 };
 
 namespace Colors
-{ // CSS Named Colors that aren't in raylib.h
+{ // CSS Named Colors
+	// Basic colors
+	inline constexpr Color Black{ 0, 0, 0, 255 };
+	inline constexpr Color White{ 255, 255, 255, 255 };
+	inline constexpr Color Red{ 255, 0, 0, 255 };
+	inline constexpr Color Green{ 0, 128, 0, 255 };
+	inline constexpr Color Blue{ 0, 0, 255, 255 };
+	inline constexpr Color Yellow{ 255, 255, 0, 255 };
+	inline constexpr Color Cyan{ 0, 255, 255, 255 };
+	inline constexpr Color Magenta{ 255, 0, 255, 255 };
+	inline constexpr Color Gray{ 128, 128, 128, 255 };
+	inline constexpr Color Silver{ 192, 192, 192, 255 };
+	inline constexpr Color Maroon{ 128, 0, 0, 255 };
+	inline constexpr Color Olive{ 128, 128, 0, 255 };
+	inline constexpr Color Lime{ 0, 255, 0, 255 };
+	inline constexpr Color Aqua{ 0, 255, 255, 255 };
+	inline constexpr Color Teal{ 0, 128, 128, 255 };
+	inline constexpr Color Navy{ 0, 0, 128, 255 };
+	inline constexpr Color Purple{ 128, 0, 128, 255 };
+	inline constexpr Color Fuchsia{ 255, 0, 255, 255 };
+
+	// Extended CSS colors
 	inline constexpr Color AliceBlue{ 240, 248, 255, 255 };
 	inline constexpr Color AntiqueWhite{ 250, 235, 215, 255 };
 	inline constexpr Color Aquamarine{ 127, 255, 212, 255 };
@@ -405,7 +426,6 @@ namespace Colors
 	inline constexpr Color CornflowerBlue{ 100, 149, 237, 255 };
 	inline constexpr Color Cornsilk{ 255, 248, 220, 255 };
 	inline constexpr Color Crimson{ 220, 20, 60, 255 };
-	inline constexpr Color Cyan{ 0, 255, 255, 255 };
 	inline constexpr Color DarkBlue{ 0, 0, 139, 255 };
 	inline constexpr Color DarkCyan{ 0, 139, 139, 255 };
 	inline constexpr Color DarkGoldenrod{ 184, 134, 11, 255 };
