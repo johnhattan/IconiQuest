@@ -32,18 +32,24 @@ Rules:
 ## Architecture conventions
 
 ### Shared type foundation
-- `src/pch.hxx` is the shared core header for common geometry and primitive aliases (adapted from bom project).
+- `src/pch.hxx` is the shared core header. **All .cpp and .hpp files must `#include "pch.hxx"` as the first include.**
+- **STL headers**: All standard library includes (algorithm, array, chrono, cmath, cstdint, filesystem, fstream, iostream, limits.h, memory, set, sstream, string, string_view, unordered_map, vector) are consolidated in pch.hxx. Do not repeat them locally.
 - **Numeric types**: `u8/u16/u32/u64`, `i8/i16/i32/i64`, `f32/f64`, `usize` with min/max constants.
 - **Geometry types**:
-  - `Point<T>` — templated 2D point with arithmetic operators and conversions. Aliases: `f32Point`, `Vec2` (backward compat).
+  - `Point<T>` — templated 2D point with arithmetic operators and conversions. Aliases: `f32Point` (primary), `i32Point`, `Vec2` (backward compat).
   - `Rect<T>` — templated rectangle with x/y/w/h. Methods: `Left()`, `Top()`, `Right()`, `Bottom()`, `Center()`, `Contains()`, `Normalized()`, `Union()`, `Intersection()`, `FromMinMax()`.
-  - `ColorRGBA` — 8-bit RGBA with hex parsing via `fromHex()`.
+  - `Color` — 8-bit RGBA with hex parsing via `fromHex()`.
 - **Utility macros**:
   - `endcase` — used in switch statements instead of break for clarity.
   - `nullfn` — alias for `delete` to mark unavailable class functions.
 - **observer_ptr<T>** — non-owning smart pointer for references into externally-owned objects (World, Location, etc.); never delete through this type.
 - Prefer not to duplicate type declarations across files. If a type is broadly used, move it into the shared core header instead of local copies.
 - `src/Types.hpp` remains a compatibility wrapper for older includes; prefer `#include "pch.hxx"` for new code.
+
+**Include order** (enforced):
+1. `#include "pch.hxx"` — always first, provides all STL, type aliases, geometry
+2. Third-party headers (`<SDL3/SDL.h>`, `<pugixml.hpp>`, etc.) — only if not in pch.hxx
+3. Project headers (`#include "Actor.hpp"`, etc.) — last
 
 ### Ownership and data flow
 - `World` owns the active map and room graph.
@@ -70,7 +76,8 @@ Rules:
   - `camelCase` for local variables, function parameters, and member access functions.
   - `m_` prefix for private member variables when consistent with existing file style (prefer modern approach).
   - Use `= nullfn` (defined in `pch.hxx`) instead of `= delete` for explicitly unavailable class functions.
-- **Geometry types**: Prefer value semantics for `Point<T>`, `Rect<T>`, and `ColorRGBA`; avoid ad hoc object graphs.
+- **Geometry types**: Prefer value semantics for `Point<T>`, `Rect<T>`, and `Color`; avoid ad hoc object graphs.
+- Prefer `f32Point` for screen/world coordinates; use `i32Point` when integer semantics are needed (e.g., tile indices).
 - **Pointer ownership**: Use `observer_ptr<T>` for non-owning references into objects owned elsewhere (World, Location, etc.); document ownership when introducing new pointers.
 - **Code formatting**: Use clang-format with `.clang-format` config (tabs, Microsoft style, `endcase` support).
   - Brace wrapping: After function, class, struct, namespace, union, enum; before catch/else.

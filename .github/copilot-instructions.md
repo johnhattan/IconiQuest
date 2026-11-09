@@ -1,14 +1,14 @@
 # Copilot instructions for IconiQuest
 
-This repository is a deterministic, repo-local C++ game project. Treat it as a submodule-based project, not a networked dependency build.
+This repository is a deterministic, repo-local C++20 game project. Treat it as a submodule-based project, not a networked dependency build.
 
-## Defaults
-- Keep dependencies in `lib/` as git submodules and fail clearly if they are missing.
-- Use repo-root `assets/` as the canonical runtime data path.
-- Prefer `src/pch.hxx` for shared core types and geometry; `src/Types.hpp` is compatibility-only.
-- Preserve SDL3 + ImGui + pugixml architecture and avoid broad framework churn.
+## Key architecture
+- Dependencies: git submodules in `lib/`, fail clearly if missing.
+- Runtime assets: repo-root `assets/` is canonical.
+- Core foundation: `src/pch.hxx` (geometry types, numeric aliases, STL headers).
+- SDK: SDL3 + Dear ImGui + SDL_mixer + pugixml.
 
-## Build/test commands
+## Build and test
 ```bash
 git submodule update --init --recursive
 cmake -S . -B build -G Ninja
@@ -17,18 +17,15 @@ cmake --build build --parallel
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./build/iconiquest --test
 ```
 
-## Code expectations
-- Prefer RAII, value types, and explicit ownership.
-- Keep map/asset resolution robust across repo root and legacy backup directories.
-- Do not add build-time downloads, package install steps, or network access in CMake.
-- Keep editor and gameplay logic separate and avoid coupling UI behavior to asset folder internals.
+## Code rules
+- **Types**: Use `Point<T>`, `Rect<T>`, `Color` from pch.hxx; prefer f32Point/i32Point for explicit intent.
+- **Includes**: All .cpp and .hpp files must include `pch.hxx` first (provides all STL headers, type aliases, geometry).
+- **Ownership**: RAII, explicit, non-owning refs via `observer_ptr<T>`.
+- **Asset paths**: Resolve from repo-root `assets/` first; fallback to legacy locations only as compatibility.
+- **No network access**: No build-time fetches, downloads, or remote code in CMake.
+- **Formatting**: Use clang-format with `.clang-format` (tabs, Microsoft style, endcase support).
 
-## When editing types or shared headers
-- Centralize shared primitives in `src/pch.hxx`.
-- Keep `Vec2`, `Rect`, and `ColorRGBA` consistent with the existing engine semantics.
-- If a type is used broadly, move it into the shared core header instead of continuing to copy it into multiple files.
-
-## Notes for generated patches
-- Make surgical changes.
-- Preserve runtime asset resolution and repo-local submodule assumptions.
-- Validate the effect on map loading and the `--test` path before concluding the work is complete.
+## When editing
+- Centralize shared types in `src/pch.hxx` if used broadly; do not duplicate type defs.
+- Make surgical, focused changes; preserve submodule and asset-folder assumptions.
+- Validate with `./build/iconiquest --test` before concluding.
