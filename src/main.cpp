@@ -4,7 +4,7 @@
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
 
-#include "Types.hpp"
+#include "pch.hxx"
 #include "GlyphCache.hpp"
 #include "AudioEngine.hpp"
 #include "World.hpp"
