@@ -195,7 +195,7 @@ bool Actor::onTap(int numTaps) {
     World* world = m_location->getWorld();
     if (!world) return false;
 
-    // 1. Relocater check
+    // 1. Relocater check (change location within current game)
     if (m_props.has("relocaterDest")) {
         bool canRelocate = true;
         if (m_props.getBool("toggle", false)) {
@@ -214,7 +214,19 @@ bool Actor::onTap(int numTaps) {
         }
     }
 
-    // 2. Revealer check
+    // 2. Relocater Map check (switch to different game/map)
+    if (m_props.has("relocaterMap")) {
+        std::string mapName = m_props.get("relocaterMap");
+        float time = m_props.getFloat("relocaterMapTime", 0.75f);
+        std::string snd = m_props.get("soundRelocateMap");
+        if (!snd.empty()) {
+            AudioEngine::instance().playSfx(snd);
+        }
+        world->switchGame(mapName, time);
+        return true;
+    }
+
+    // 3. Revealer check
     std::vector<std::string> reveals = getRevealActors();
     std::vector<std::string> revealsSync = getRevealActorsSync();
     if (!reveals.empty() || !revealsSync.empty()) {

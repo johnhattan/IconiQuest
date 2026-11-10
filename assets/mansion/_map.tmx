@@ -1,0 +1,595 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="100" height="20"
+    tilewidth="48" tileheight="48" backgroundcolor="#000000" nextobjectid="147">
+    <tileset firstgid="1" name="main" tilewidth="48" tileheight="48">
+        <image source="_map.png" width="960" height="48" />
+    </tileset>
+    <objectgroup name="partLose">
+        <properties>
+            <property name="soundThemeEnter" value="sndThemeDeath" />
+        </properties>
+        <object id="124" name="dimensions" type="Bounds" x="284" y="443" width="304" height="206" />
+        <object id="128" name="glyphTombstone" gid="1" x="410" y="562" width="48" height="48">
+            <properties>
+                <property name="note" value="glyphBottleToggled" />
+                <property name="note1" value="glyphGlassToggled" />
+                <property name="note2" value="glyphSkull" />
+            </properties>
+        </object>
+        <object id="146" name="_podSettingsRestart" type="MapRevertActor" gid="1" x="471" y="638"
+            width="48" height="48" />
+    </objectgroup>
+    <objectgroup name="partWin">
+        <properties>
+            <property name="soundThemeEnter" value="sndThemeVictory" />
+        </properties>
+        <object id="77" name="dimensions" type="Bounds" x="8" y="239" width="257" height="197" />
+        <object id="82" name="glyphSmile" gid="1" x="108.606" y="355.636" width="48" height="48" />
+        <object id="145" name="_podSettingsRestart" type="MapRevertActor" gid="1" x="160" y="433"
+            width="48" height="48" />
+    </objectgroup>
+    <objectgroup name="part11">
+        <properties>
+            <property name="sndThemeEnter" value="sndThemeHall" />
+            <property name="soundEnter" value="sfxDoorClose" />
+        </properties>
+        <object id="70" name="dimensions" type="Bounds" x="268.576" y="237.667" width="318"
+            height="198" />
+        <object id="71" name="glyphTable" gid="1" x="405.017" y="377.655" width="48" height="48">
+            <properties>
+                <property name="revealActor" value="glyphBottle" />
+                <property name="revealActor1" value="glyphNote" />
+                <property name="revealLoop" value="false" />
+                <property name="revealTime" value="0.5" />
+            </properties>
+        </object>
+        <object id="72" name="glyphDoorNext" gid="1" x="279.576" y="380.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="partWin" />
+                <property name="relocaterDestTime" value="1" />
+                <property name="soundRelocate" value="sfxDoorOpen" />
+            </properties>
+        </object>
+        <object id="73" name="glyphBottle" gid="1" x="379.697" y="336.242" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+                <property name="note" value="glyphCorkscrew" />
+                <property name="soundToggle" value="sfxCork" />
+                <property name="toggle" value="true" />
+                <property name="toggleLoop" value="false" />
+                <property name="toggleTrigger" value="glyphCorkscrew" />
+            </properties>
+        </object>
+        <object id="74" name="glyphNote" gid="1" x="434.424" y="333.273" width="48" height="48">
+            <properties>
+                <property name="note" value="glyphBottle" />
+                <property name="note1" value="glyphCorkscrew" />
+                <property name="note2" value="glyphGlassToggled" />
+                <property name="note3" value="glyphSmile" />
+            </properties>
+        </object>
+        <object id="75" name="glyphDoorPrev" gid="1" x="527.576" y="370.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part10" />
+                <property name="relocaterDestTime" value="1" />
+            </properties>
+        </object>
+    </objectgroup>
+    <objectgroup name="partHidden">
+        <properties>
+            <property name="sndThemeEnter" value="sndThemeHidden" />
+        </properties>
+        <object id="100" name="glyphDoorPrev" gid="1" x="742.424" y="218.848" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part10" />
+                <property name="relocaterDestTime" value="1" />
+            </properties>
+        </object>
+        <object id="101" name="dimensions" type="Bounds" x="603.636" y="36" width="318.364"
+            height="188.97" />
+        <object id="102" name="glyphPerson" gid="1" x="681.606" y="167.242" width="48" height="48">
+            <properties>
+                <property name="hiddenUnlessActor" value="glyphLampToggled" />
+                <property name="note" value="glyphGunToggled" />
+                <property name="note1" value="glyphLamp" />
+                <property name="soundNote" value="sfxCryMan" />
+                <property name="toggle" value="true" />
+                <property name="toggleLoop" value="false" />
+                <property name="toggleTrigger" value="glyphGunToggled" />
+            </properties>
+        </object>
+        <object id="121" name="glyphLamp" type="LampActor" gid="1" x="787" y="133" width="48"
+            height="48">
+            <properties>
+                <property name="soundCustom" value="sfxGunshot" />
+                <property name="toggle" value="true" />
+            </properties>
+        </object>
+        <object id="122" name="glyphMoney" gid="1" x="638" y="200" width="48" height="48">
+            <properties>
+                <property name="hidden" value="true" />
+                <property name="item" value="true" />
+                <property name="soundItemDrag" value="sfxCoins" />
+                <property name="soundItemDrop" value="sfxCoins" />
+            </properties>
+        </object>
+    </objectgroup>
+    <objectgroup name="part10">
+        <properties>
+            <property name="sndThemeEnter" value="sndThemeHall" />
+            <property name="soundEnter" value="sfxDoorClose" />
+        </properties>
+        <object id="66" name="glyphDoorNext" gid="1" x="615.636" y="378.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part11" />
+                <property name="relocaterDestTime" value="1.5" />
+                <property name="soundRelocate" value="sfxDoorOpen" />
+            </properties>
+        </object>
+        <object id="67" name="glyphDoorPrev" gid="1" x="863.636" y="368.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part9" />
+                <property name="relocaterDestTime" value="1" />
+            </properties>
+        </object>
+        <object id="68" name="dimensions" type="Bounds" x="604.636" y="235.667" width="318"
+            height="198" />
+        <object id="69" name="glyphCurtain1" gid="1" x="769.782" y="292" width="48" height="48">
+            <properties>
+                <property name="glyph" value="glyphCurtain" />
+                <property name="glyphRevealed" value="glyphCurtainR" />
+                <property name="revealActor" value="glyphDoor" />
+                <property name="revealDeltaX" value="30" />
+                <property name="revealTime" value="0.75" />
+            </properties>
+        </object>
+        <object id="103" name="glyphDoor" gid="1" x="745.455" y="292" width="48" height="48">
+            <properties>
+                <property name="glyphToggled" value="glyphDoorNext" />
+                <property name="note" value="glyphKnife" />
+                <property name="relocaterDest" value="partHidden" />
+                <property name="relocaterDestTime" value="1" />
+                <property name="toggle" value="true" />
+                <property name="toggleLoop" value="false" />
+                <property name="toggleTrigger" value="glyphKnife" />
+                <property name="toggleTriggerKeep" value="true" />
+            </properties>
+        </object>
+        <object id="120" name="glyphCurtain2" gid="1" x="720" y="292" width="48" height="48">
+            <properties>
+                <property name="glyph" value="glyphCurtain" />
+                <property name="glyphRevealed" value="glyphCurtainL" />
+                <property name="revealActor" value="glyphDoor" />
+                <property name="revealDeltaX" value="-30" />
+                <property name="revealTime" value="0.75" />
+            </properties>
+        </object>
+    </objectgroup>
+    <objectgroup name="part9">
+        <properties>
+            <property name="sndThemeEnter" value="sndThemeHall" />
+            <property name="soundEnter" value="sfxDoorClose" />
+        </properties>
+        <object id="58" name="glyphDesk" gid="1" x="1020.36" y="302.424" width="48" height="48">
+            <properties>
+                <property name="note" value="glyphLock" />
+                <property name="revealActorSync" value="glyphMap" />
+                <property name="revealActorSync1" value="glyphDrawer" />
+                <property name="revealLoop" value="false" />
+                <property name="revealTime" value="1" />
+                <property name="revealTrigger" value="glyphKey" />
+                <property name="soundReveal" value="sfxDrawer" />
+            </properties>
+        </object>
+        <object id="59" name="glyphMap" gid="1" x="1051.09" y="356.061" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+            </properties>
+        </object>
+        <object id="60" name="glyphDoorNext" gid="1" x="947.636" y="374.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part10" />
+                <property name="relocaterDestTime" value="1.5" />
+                <property name="soundRelocate" value="sfxDoorOpen" />
+            </properties>
+        </object>
+        <object id="61" name="glyphDoorPrev" gid="1" x="1195.64" y="364.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part8" />
+                <property name="relocaterDestTime" value="1" />
+            </properties>
+        </object>
+        <object id="62" name="dimensions" type="Bounds" x="936.636" y="231.667" width="318"
+            height="198" />
+        <object id="63" name="glyphDrawer" gid="1" x="1092.85" y="310.667" width="48" height="48">
+            <properties>
+                <property name="revealActor" value="glyphEnvelope" />
+                <property name="revealTime" value="1" />
+                <property name="soundReveal" value="sfxDrawer" />
+            </properties>
+        </object>
+        <object id="93" name="glyphEnvelope" gid="1" x="1109.09" y="372.727" width="48" height="48">
+            <properties>
+                <property name="note" value="glyphKnife" />
+                <property name="revealActor" value="glyphCombination" />
+                <property name="revealTime" value="1" />
+                <property name="revealTrigger" value="glyphKnife" />
+                <property name="revealTriggerKeep" value="true" />
+                <property name="soundReveal" value="sfxTear" />
+            </properties>
+        </object>
+        <object id="94" name="glyphCombination" gid="1" x="1139.39" y="418.182" width="48"
+            height="48">
+            <properties>
+                <property name="item" value="true" />
+            </properties>
+        </object>
+    </objectgroup>
+    <objectgroup name="part8">
+        <properties>
+            <property name="sndThemeEnter" value="sndThemeHall" />
+            <property name="soundEnter" value="sfxDoorClose" />
+        </properties>
+        <object id="52" name="glyphDoorPrev" gid="1" x="1535.64" y="364.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part7" />
+                <property name="relocaterDestTime" value="1" />
+            </properties>
+        </object>
+        <object id="53" name="dimensions" type="Bounds" x="1276.64" y="231.667" width="318"
+            height="198" />
+        <object id="54" name="glyphDoorNext" gid="1" x="1287.64" y="374.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part9" />
+                <property name="relocaterDestTime" value="1.5" />
+                <property name="soundRelocate" value="sfxDoorOpen" />
+            </properties>
+        </object>
+        <object id="55" name="glyphCandle" gid="1" x="1446.48" y="354.242" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+                <property name="soundToggle" value="sfxMatch" />
+                <property name="toggle" value="true" />
+                <property name="toggleLoop" value="false" />
+                <property name="toggleTime" value="1" />
+                <property name="toggleTrigger" value="glyphMatchToggled" />
+            </properties>
+        </object>
+        <object id="56" name="glyphDresser" gid="1" x="1403.64" y="314.667" width="48" height="48">
+            <properties>
+                <property name="revealActorSync" value="glyphCandle" />
+                <property name="revealActorSync1" value="glyphGlass" />
+                <property name="revealLoop" value="false" />
+                <property name="revealTime" value="0.75" />
+                <property name="soundReveal" value="sfxDrawer" />
+            </properties>
+        </object>
+        <object id="57" name="glyphGlass" gid="1" x="1384.73" y="367.273" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+                <property name="relocaterDest" value="*.partLose" />
+                <property name="relocaterDestTime" value="0.5" />
+                <property name="soundToggle" value="sfxFill" />
+                <property name="toggle" value="true" />
+                <property name="toggleLoop" value="false" />
+                <property name="toggleTrigger" value="glyphBottleToggled" />
+            </properties>
+        </object>
+    </objectgroup>
+    <objectgroup name="part7">
+        <properties>
+            <property name="sndThemeEnter" value="sndThemeHall" />
+            <property name="soundEnter" value="sfxDoorClose" />
+        </properties>
+        <object id="47" name="dimensions" type="Bounds" x="1612.64" y="223.667" width="318"
+            height="198" />
+        <object id="48" name="glyphDoorNext" gid="1" x="1623.64" y="366.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part8" />
+                <property name="relocaterDestTime" value="1.5" />
+                <property name="soundRelocate" value="sfxDoorOpen" />
+            </properties>
+        </object>
+        <object id="49" name="glyphDoorPrev" gid="1" x="1871.64" y="356.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part6" />
+                <property name="relocaterDestTime" value="1" />
+            </properties>
+        </object>
+        <object id="89" name="glyphMirror" gid="1" x="1748.48" y="400" width="48" height="48">
+            <properties>
+                <property name="hiddenUnlessActor" value="inventory.glyphCandleToggled" />
+                <property name="revealActor" value="glyphKnife" />
+                <property name="revealLoop" value="false" />
+                <property name="revealTime" value="1" />
+            </properties>
+        </object>
+        <object id="92" name="glyphKnife" gid="1" x="1639.39" y="278.788" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+            </properties>
+        </object>
+    </objectgroup>
+    <objectgroup name="part6">
+        <properties>
+            <property name="sndThemeEnter" value="sndThemeHall" />
+            <property name="soundEnter" value="sfxDoorClose" />
+        </properties>
+        <object id="42" name="glyphDoorNext" gid="1" x="1975.64" y="374.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part7" />
+                <property name="relocaterDestTime" value="1.5" />
+                <property name="soundRelocate" value="sfxDoorOpen" />
+            </properties>
+        </object>
+        <object id="43" name="dimensions" type="Bounds" x="1964.64" y="231.667" width="318"
+            height="198" />
+        <object id="44" name="glyphTable" gid="1" x="2094.76" y="355.818" width="48" height="48">
+            <properties>
+                <property name="revealActor" value="glyphBook" />
+                <property name="revealDeltaX" value="60" />
+                <property name="revealTime" value="0.5" />
+                <property name="soundReveal" value="sfxFurniture" />
+            </properties>
+        </object>
+        <object id="45" name="glyphDoorPrev" gid="1" x="2223.64" y="364.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part5" />
+                <property name="relocaterDestTime" value="1" />
+            </properties>
+        </object>
+        <object id="46" name="glyphBook" gid="1" x="2085.09" y="361.212" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+                <property name="revealActor" value="glyphWindup" />
+                <property name="revealLoop" value="false" />
+                <property name="revealTime" value="0.5" />
+            </properties>
+        </object>
+        <object id="86" name="glyphVase" gid="1" x="2092.91" y="308" width="48" height="48">
+            <properties>
+                <property name="revealActor" value="glyphBullet" />
+                <property name="revealDeltaX" value="-60" />
+                <property name="revealDeltaY" value="60" />
+                <property name="revealLoop" value="false" />
+                <property name="revealTime" value="1" />
+                <property name="soundReveal" value="sfxVase" />
+            </properties>
+        </object>
+        <object id="87" name="glyphBullet" gid="1" x="2033.33" y="411.033" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+            </properties>
+        </object>
+        <object id="88" name="glyphWindup" gid="1" x="2109.09" y="403.03" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+            </properties>
+        </object>
+    </objectgroup>
+    <objectgroup name="part5">
+        <properties>
+            <property name="sndThemeEnter" value="sndThemeHall" />
+            <property name="soundEnter" value="sfxDoorClose" />
+        </properties>
+        <object id="38" name="glyphDoorPrev" gid="1" x="2563.64" y="364.667" width="48" height="48"
+            rotation="-5">
+            <properties>
+                <property name="relocaterDest" value="part4" />
+                <property name="relocaterDestTime" value="1" />
+            </properties>
+        </object>
+        <object id="39" name="glyphPiano" gid="1" x="2411.09" y="413.304" width="48" height="48">
+            <properties>
+                <property name="revealActor" value="glyphMatch" />
+                <property name="revealLoop" value="false" />
+                <property name="revealTime" value="0.5" />
+                <property name="soundReveal" value="sfxPiano" />
+                <property name="soundRevealDuration" value="0.35" />
+                <property name="soundTap" value="sfxPiano" />
+            </properties>
+        </object>
+        <object id="40" name="dimensions" type="Bounds" x="2304.64" y="231.667" width="318"
+            height="198" />
+        <object id="41" name="glyphDoorNext" gid="1" x="2315.64" y="374.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part6" />
+                <property name="relocaterDestTime" value="1.5" />
+                <property name="soundRelocate" value="sfxDoorOpen" />
+            </properties>
+        </object>
+        <object id="85" name="glyphMatch" gid="1" x="2444.64" y="379" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+                <property name="soundToggle" value="sfxMatch" />
+                <property name="toggle" value="true" />
+                <property name="toggleLoop" value="false" />
+            </properties>
+        </object>
+    </objectgroup>
+    <objectgroup name="part4">
+        <properties>
+            <property name="sndThemeEnter" value="sndThemeHall" />
+            <property name="soundEnter" value="sfxDoorClose" />
+        </properties>
+        <object id="34" name="dimensions" type="Bounds" x="2636.64" y="227.667" width="318"
+            height="198" />
+        <object id="35" name="glyphDoorPrev" gid="1" x="2895.64" y="360.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part3" />
+                <property name="relocaterDestTime" value="1" />
+            </properties>
+        </object>
+        <object id="84" name="glyphSafe" gid="1" x="2784.85" y="363.636" width="48" height="48">
+            <properties>
+                <property name="revealActor" value="glyphGun" />
+                <property name="revealTime" value="0.5" />
+                <property name="revealTrigger" value="glyphCombination" />
+            </properties>
+        </object>
+        <object id="36" name="glyphPicture" gid="1" x="2780.79" y="361.152" width="48" height="48">
+            <properties>
+                <property name="revealActor" value="glyphSafe" />
+                <property name="revealDeltaY" value="-50" />
+                <property name="revealTime" value="1" />
+            </properties>
+        </object>
+        <object id="37" name="glyphDoorNext" gid="1" x="2647.64" y="370.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part5" />
+                <property name="relocaterDestTime" value="1.5" />
+                <property name="soundRelocate" value="sfxDoorOpen" />
+            </properties>
+        </object>
+        <object id="118" name="glyphGun" gid="1" x="2833.33" y="393.939" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+                <property name="toggle" value="true" />
+                <property name="toggleTrigger" value="glyphBullet" />
+            </properties>
+        </object>
+    </objectgroup>
+    <objectgroup name="part3">
+        <properties>
+            <property name="colorBackground" value="0x003300" />
+            <property name="sndThemeEnter" value="sndThemeHall" />
+            <property name="soundEnter" value="sfxDoorClose" />
+        </properties>
+        <object id="30" name="glyphDoorPrev" gid="1" x="3231.64" y="352.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part2" />
+                <property name="relocaterDestTime" value="1" />
+            </properties>
+        </object>
+        <object id="31" name="glyphDoorNext" gid="1" x="2983.64" y="362.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part4" />
+                <property name="relocaterDestTime" value="1.5" />
+                <property name="soundRelocate" value="sfxDoorOpen" />
+            </properties>
+        </object>
+        <object id="32" name="dimensions" type="Bounds" x="2972.64" y="219.667" width="318"
+            height="198" />
+        <object id="33" name="glyphBookshelf" gid="1" x="3121.64" y="408.667" width="48" height="48">
+            <properties>
+                <property name="note" value="glyphBook" />
+                <property name="toggle" value="true" />
+                <property name="toggleLoop" value="false" />
+                <property name="toggleTrigger" value="glyphBook" />
+                <property name="toggleTrigger1" value="glyphBookRevealed" />
+            </properties>
+        </object>
+        <object id="113" name="glyphMouse" gid="1" x="3106.06" y="284.848" width="48" height="48">
+            <properties>
+                <property name="moveDeltaX" value="-90" />
+                <property name="moveDeltaX1" value="10" />
+                <property name="moveDeltaX2" value="100" />
+                <property name="moveDeltaY" value="20" />
+                <property name="moveDeltaY1" value="25" />
+                <property name="moveDeltaY2" value="-5" />
+                <property name="moveTime" value="0.3" />
+                <property name="soundMove" value="sfxMouse" />
+            </properties>
+        </object>
+    </objectgroup>
+    <objectgroup name="part2">
+        <properties>
+            <property name="colorBackground" value="0x330000" />
+            <property name="sndThemeEnter" value="sndThemeHall" />
+            <property name="soundEnter" value="sfxDoorClose" />
+        </properties>
+        <object id="24" name="dimensions" type="Bounds" x="3302.64" y="221.667" width="318"
+            height="198" />
+        <object id="25" name="glyphClock" gid="1" x="3395.64" y="296.667" width="48" height="48">
+            <properties>
+                <property name="note" value="glyphWindup" />
+                <property name="note1" value="glyphClockRevealed" />
+                <property name="revealActor" value="glyphCorkscrew" />
+                <property name="revealTime" value="1" />
+                <property name="revealTrigger" value="glyphWindup" />
+                <property name="soundReveal" value="sfxClock" />
+            </properties>
+        </object>
+        <object id="26" name="glyphDoorNext" gid="1" x="3313.64" y="364.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part3" />
+                <property name="relocaterDestTime" value="1" />
+                <property name="soundRelocate" value="sfxDoorOpen" />
+            </properties>
+        </object>
+        <object id="27" name="glyphUmbrella" gid="1" x="3479.64" y="296.667" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+                <property name="toggle" value="true" />
+            </properties>
+        </object>
+        <object id="28" name="glyphDoorPrev" gid="1" x="3561.64" y="354.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part1" />
+                <property name="relocaterDestTime" value="0.75" />
+            </properties>
+        </object>
+        <object id="90" name="glyphCorkscrew" gid="1" x="3421.21" y="339.394" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+            </properties>
+        </object>
+    </objectgroup>
+    <objectgroup color="#a0a4a4" name="part1">
+        <properties>
+            <property name="locationStart" value="true" />
+            <property name="soundEnter" value="sfxDoorClose" />
+            <property name="soundThemeEnter" value="sndThemeHall" />
+            <property name="soundThemeNumTimes" value="999" />
+        </properties>
+        <object id="20" name="dimensions" type="Bounds" x="3630.64" y="217.667" width="279.36"
+            height="198" />
+        <object id="23" name="glyphKey" gid="1" x="3751.24" y="385.455" width="48" height="48">
+            <properties>
+                <property name="item" value="true" />
+                <property name="soundItemDrag" value="sfxKey" />
+                <property name="soundItemDrop" value="sfxKey" />
+            </properties>
+        </object>
+        <object id="21" name="glyphRug" gid="1" x="3736.64" y="376.667" width="48" height="48">
+            <properties>
+                <property name="revealActor" value="glyphKey" />
+                <property name="revealDeltaX" value="-45" />
+                <property name="revealLoop" value="true" />
+                <property name="revealTime" value="0.75" />
+            </properties>
+        </object>
+        <object id="22" name="glyphDoorNext" gid="1" x="3641.64" y="362.667" width="48" height="48">
+            <properties>
+                <property name="relocaterDest" value="part2" />
+                <property name="relocaterDestTime" value="1" />
+                <property name="soundRelocate" value="sfxDoorOpen" />
+            </properties>
+        </object>
+        <object id="142" name="glyphCopyright" gid="1" x="3860" y="311" width="48" height="48">
+            <properties>
+                <property name="note" value="blank" />
+                <property name="note1" value="#.\nCopyright (c) 2015\nThe Code Zone\n.#" />
+                <property name="note2" value="blank" />
+            </properties>
+        </object>
+        <object id="143" name="glyphTable" gid="1" x="3835" y="355" width="48" height="48">
+            <properties>
+                <property name="revealActorSync" value="glyphNoteInstructions" />
+                <property name="revealActorSync1" value="glyphCopyright" />
+                <property name="revealLoop" value="false" />
+                <property name="revealTime" value="0.5" />
+            </properties>
+        </object>
+        <object id="144" name="glyphNoteInstructions" gid="1" x="3809" y="312" width="48"
+            height="48">
+            <properties>
+                <property name="glyph" value="glyphNote" />
+                <property name="note" value="glyphDoorNext" />
+                <property name="note1" value="glyphDoorNext" />
+                <property name="note2" value="glyphDoorNext" />
+                <property name="note3" value="glyphWalking" />
+            </properties>
+        </object>
+    </objectgroup>
+</map>

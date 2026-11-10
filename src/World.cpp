@@ -109,6 +109,42 @@ void World::changeLocation(const std::string& name, float transitionTime) {
     }
 }
 
+void World::switchGame(const std::string& gameName, float transitionTime) {
+    // Resolve the map path for the new game
+    std::string mapFileName = "_map.tmx";
+    std::filesystem::path newMapPath;
+    
+    if (gameName.empty() || gameName == "_default") {
+        newMapPath = std::filesystem::path(m_gameAssetsRoot) / "_default" / mapFileName;
+    } else {
+        newMapPath = std::filesystem::path(m_gameAssetsRoot) / gameName / mapFileName;
+    }
+
+    // Clear current game state
+    m_locations.clear();
+    m_currentLocation = nullptr;
+    m_startLocation = nullptr;
+    m_inventoryItems.clear();
+    m_actorBeingDragged = nullptr;
+    hideNoteBubble();
+
+    // Update current game and notify subsystems
+    m_currentGame = gameName;
+    GlyphCache::instance().setCurrentGame(gameName);
+    AudioEngine::instance().setCurrentGame(gameName);
+
+    // Load the new map
+    if (!load(newMapPath.string(), m_gameAssetsRoot)) {
+        std::cerr << "[World] Failed to load game '" << gameName << "' from " << newMapPath.string() << std::endl;
+        return;
+    }
+
+    // Frame the first location with transition
+    if (m_currentLocation) {
+        m_camera.frameRect(m_currentLocation->getBounds(), transitionTime);
+    }
+}
+
 void World::revertWorld() {
     for (auto& loc : m_locations) {
         if (loc) loc->revert();

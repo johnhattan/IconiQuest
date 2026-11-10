@@ -1,7 +1,6 @@
 #pragma once
 
 #include "pch.hpp"
-#include "PropertyDictionary.hpp"
 
 class Actor;
 class World;

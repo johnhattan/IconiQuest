@@ -61,26 +61,49 @@ void AudioEngine::shutdown() {
 }
 
 void AudioEngine::setSoundsDir(const std::string& dir) {
-    m_soundsDir = dir;
+	m_soundsDir = dir;
+}
+
+void AudioEngine::setGameAssetsRoot(const std::string& root) {
+	m_gameAssetsRoot = root;
+}
+
+void AudioEngine::setCurrentGame(const std::string& game) {
+	m_currentGame = game;
+	// Stop the current theme when switching games
+	stopTheme();
 }
 
 std::string AudioEngine::resolveSoundPath(const std::string& name) {
-    if (name.empty()) return "";
+	if (name.empty()) return "";
 
-    std::vector<std::string> exts = {".ogg", ".mp3", ".wav", ".flac", ".mod"};
-    for (const auto& ext : exts) {
-        std::filesystem::path p = std::filesystem::path(m_soundsDir) / (name + ext);
-        if (std::filesystem::exists(p)) {
-            return p.string();
-        }
-    }
+	std::vector<std::string> exts = {".ogg", ".mp3", ".wav", ".flac", ".mod"};
+	
+	// First priority: try the game-specific sounds folder (if not using _default)
+	if (!m_gameAssetsRoot.empty() && !m_currentGame.empty() && m_currentGame != "_default") {
+		for (const auto& ext : exts) {
+			std::filesystem::path p = std::filesystem::path(m_gameAssetsRoot) / m_currentGame / "sounds" / (name + ext);
+			if (std::filesystem::exists(p)) {
+				return p.string();
+			}
+		}
+	}
 
-    std::filesystem::path direct = std::filesystem::path(m_soundsDir) / name;
-    if (std::filesystem::exists(direct)) {
-        return direct.string();
-    }
+	// Second priority: fall back to default sounds dir
+	for (const auto& ext : exts) {
+		std::filesystem::path p = std::filesystem::path(m_soundsDir) / (name + ext);
+		if (std::filesystem::exists(p)) {
+			return p.string();
+		}
+	}
 
-    return "";
+	// Third priority: try direct file (no extension)
+	std::filesystem::path direct = std::filesystem::path(m_soundsDir) / name;
+	if (std::filesystem::exists(direct)) {
+		return direct.string();
+	}
+
+	return "";
 }
 
 void AudioEngine::playSfx(const std::string& name, float volume) {

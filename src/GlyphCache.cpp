@@ -31,29 +31,52 @@ void GlyphCache::clear() {
 }
 
 void GlyphCache::setImagesDir(const std::string& dir) {
-    if (m_imagesDir != dir) {
-        clear();
-        m_imagesDir = dir;
-    }
+	if (m_imagesDir != dir) {
+		clear();
+		m_imagesDir = dir;
+	}
+}
+
+void GlyphCache::setGameAssetsRoot(const std::string& root) {
+	m_gameAssetsRoot = root;
+}
+
+void GlyphCache::setCurrentGame(const std::string& game) {
+	m_currentGame = game;
+	// Clear texture cache when switching games since asset paths may have changed
+	clear();
 }
 
 std::string GlyphCache::resolvePath(const std::string& glyphName) {
-    if (glyphName.empty()) return "";
+	if (glyphName.empty()) return "";
 
-    std::vector<std::string> exts = {".svg", ".png"};
-    for (const auto& ext : exts) {
-        std::filesystem::path p = std::filesystem::path(m_imagesDir) / (glyphName + ext);
-        if (std::filesystem::exists(p)) {
-            return p.string();
-        }
-    }
+	std::vector<std::string> exts = {".svg", ".png"};
+	
+	// First priority: try the game-specific images folder (if not using _default)
+	if (!m_gameAssetsRoot.empty() && !m_currentGame.empty() && m_currentGame != "_default") {
+		for (const auto& ext : exts) {
+			std::filesystem::path p = std::filesystem::path(m_gameAssetsRoot) / m_currentGame / "images" / (glyphName + ext);
+			if (std::filesystem::exists(p)) {
+				return p.string();
+			}
+		}
+	}
 
-    std::filesystem::path direct = std::filesystem::path(m_imagesDir) / glyphName;
-    if (std::filesystem::exists(direct)) {
-        return direct.string();
-    }
+	// Second priority: fall back to default images dir
+	for (const auto& ext : exts) {
+		std::filesystem::path p = std::filesystem::path(m_imagesDir) / (glyphName + ext);
+		if (std::filesystem::exists(p)) {
+			return p.string();
+		}
+	}
 
-    return "";
+	// Third priority: try direct file (no extension)
+	std::filesystem::path direct = std::filesystem::path(m_imagesDir) / glyphName;
+	if (std::filesystem::exists(direct)) {
+		return direct.string();
+	}
+
+	return "";
 }
 
 SDL_Texture* GlyphCache::getTexture(const std::string& glyphName) {
@@ -66,13 +89,15 @@ SDL_Texture* GlyphCache::getTexture(const std::string& glyphName) {
 
     std::string path = resolvePath(glyphName);
     if (path.empty()) {
+        std::cerr << "[GlyphCache] WARN: Could not resolve path for glyph '" << glyphName << "'" << std::endl;
+        std::cerr << "  (game='" << m_currentGame << "', assetsRoot='" << m_gameAssetsRoot << "', imagesDir='" << m_imagesDir << "')" << std::endl;
         m_textures[glyphName] = nullptr;
         return nullptr;
     }
 
     SDL_Surface* surface = IMG_Load(path.c_str());
     if (!surface) {
-        std::cerr << "[GlyphCache] Failed to load " << path << ": " << SDL_GetError() << std::endl;
+        std::cerr << "[GlyphCache] WARN: IMG_Load failed for " << path << ": " << SDL_GetError() << std::endl;
         m_textures[glyphName] = nullptr;
         return nullptr;
     }
@@ -81,7 +106,7 @@ SDL_Texture* GlyphCache::getTexture(const std::string& glyphName) {
     SDL_DestroySurface(surface);
 
     if (!tex) {
-        std::cerr << "[GlyphCache] Failed to create texture for " << path << ": " << SDL_GetError() << std::endl;
+        std::cerr << "[GlyphCache] WARN: SDL_CreateTextureFromSurface failed for " << path << ": " << SDL_GetError() << std::endl;
     }
 
     m_textures[glyphName] = tex;

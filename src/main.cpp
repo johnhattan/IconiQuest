@@ -10,52 +10,47 @@
 
 namespace {
 std::vector<std::filesystem::path> candidateAssetRoots() {
-    std::vector<std::filesystem::path> roots;
+	std::vector<std::filesystem::path> roots;
 
-    roots.push_back(std::filesystem::current_path());
+	roots.push_back(std::filesystem::current_path());
 
-    const char* basePathRaw = SDL_GetBasePath();
-    if (basePathRaw) {
-        std::filesystem::path basePath(basePathRaw);
-        roots.push_back(basePath);
-        roots.push_back(basePath / "..");
-    }
+	const char* basePathRaw = SDL_GetBasePath();
+	if (basePathRaw) {
+		std::filesystem::path basePath(basePathRaw);
+		roots.push_back(basePath);
+		roots.push_back(basePath / "..");
+	}
 
-    // Repo-local fallback for source checkouts where the original project assets
-    // live under org/IconiQuest0/assets and org/IconiQuest1/assets.
-    roots.push_back(std::filesystem::path("org").lexically_normal());
-    roots.push_back(std::filesystem::path("..").lexically_normal());
+	roots.push_back(std::filesystem::path("org").lexically_normal());
+	roots.push_back(std::filesystem::path("..").lexically_normal());
 
-    return roots;
+	return roots;
 }
 
-std::filesystem::path resolveGameAssetDir(const std::string& gameName) {
-    const std::vector<std::pair<std::string, std::vector<std::string>>> bundleCandidates = {
-        {"mansion", {"assets/mansion", "org/IconiQuest0/assets"}},
-        {"dino",   {"assets/dino",   "org/IconiQuest1/assets"}},
-    };
-
-    std::filesystem::path found;
-    for (const auto& [name, candidates] : bundleCandidates) {
-        if (name != gameName) continue;
-        for (auto& root : candidateAssetRoots()) {
-            for (const auto& candidate : candidates) {
-                auto candidatePath = (root / candidate).lexically_normal();
-                if (std::filesystem::exists(candidatePath / "maps" / "mapMain.tmx") &&
-                    std::filesystem::exists(candidatePath / "images") &&
-                    std::filesystem::exists(candidatePath / "sounds")) {
-                    return candidatePath;
-                }
-            }
-        }
-    }
-
-    return std::filesystem::path("assets") / gameName;
+std::filesystem::path resolveAssetsRoot() {
+	for (auto& root : candidateAssetRoots()) {
+		auto assetsPath = (root / "assets").lexically_normal();
+		if (std::filesystem::exists(assetsPath / "_default")) {
+			return assetsPath;
+		}
+	}
+	return std::filesystem::path("assets");
 }
 
-std::filesystem::path resolveGameMapPath(const std::string& gameName) {
-    auto assetsDir = resolveGameAssetDir(gameName);
-    return assetsDir / "maps" / "mapMain.tmx";
+std::filesystem::path resolveMapPath(const std::string& gameName) {
+	auto assetsRoot = resolveAssetsRoot();
+	std::string mapFileName = "_map.tmx";
+
+	if (gameName.empty() || gameName == "_default") {
+		return assetsRoot / "_default" / mapFileName;
+	}
+
+	return assetsRoot / gameName / mapFileName;
+}
+
+std::string getDefaultFontPath() {
+	auto assetsRoot = resolveAssetsRoot();
+	return (assetsRoot / "_default" / "fonts" / "SourceSansPro-Black.ttf").string();
 }
 }
 
@@ -106,26 +101,32 @@ int main(int argc, char* argv[]) {
     ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
     ImGui_ImplSDLRenderer3_Init(renderer);
 
-    std::string defaultGame = "mansion";
-    std::string selectedGame = defaultGame;
+    std::string defaultGame = "_default";
+    std::string currentGame = defaultGame;
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--dino") {
-            selectedGame = "dino";
+            currentGame = "dino";
         } else if (arg == "--test") {
-            selectedGame = defaultGame;
+            currentGame = "mansion";
         }
     }
 
-    std::string assetsDir = resolveGameAssetDir(selectedGame).string();
-    std::string mapPath = resolveGameMapPath(selectedGame).string();
+    auto assetsRoot = resolveAssetsRoot();
+    std::string defaultFontPath = getDefaultFontPath();
 
-    // Initialize subsystems
-    GlyphCache::instance().init(renderer, (std::filesystem::path(assetsDir) / "images").string());
-    AudioEngine::instance().init((std::filesystem::path(assetsDir) / "sounds").string());
+    // Initialize subsystems with the assets root
+    GlyphCache::instance().init(renderer, (assetsRoot / "_default" / "images").string());
+    GlyphCache::instance().setGameAssetsRoot(assetsRoot.string());
+    GlyphCache::instance().setCurrentGame(currentGame);
+    AudioEngine::instance().init((assetsRoot / "_default" / "sounds").string());
+    AudioEngine::instance().setGameAssetsRoot(assetsRoot.string());
+    AudioEngine::instance().setCurrentGame(currentGame);
 
     World world;
     world.getCamera().setViewportSize((float)windowWidth, (float)windowHeight);
+    world.setGameAssetsRoot(assetsRoot.string());
+    world.setCurrentGame(currentGame);
 
     bool headlessTest = false;
     for (int i = 1; i < argc; ++i) {
@@ -134,8 +135,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    std::string mapPath = resolveMapPath(currentGame).string();
     std::cout << "[IconiQuest] Loading " << mapPath << " ..." << std::endl;
-    if (!world.load(mapPath, assetsDir)) {
+    if (!world.load(mapPath, assetsRoot.string())) {
         std::cerr << "[IconiQuest] Warning: Could not load initial map. Check assets directory." << std::endl;
         return 1;
     }
@@ -222,17 +224,18 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "[Test] Confirmed: glyphRug loops back and re-hides glyphKey." << std::endl;
 
-        std::cout << "[IconiQuest] Testing Dino map as well..." << std::endl;
-        World dinoWorld;
-        std::string dinoAssetsDir = resolveGameAssetDir("dino").string();
-        std::string dinoMapPath = resolveGameMapPath("dino").string();
-        if (!dinoWorld.load(dinoMapPath, dinoAssetsDir)) {
-            std::cerr << "[IconiQuest] Failed to load dino map!" << std::endl;
-            return 1;
-        }
-        std::cout << "[IconiQuest] Successfully loaded Dino map with " << dinoWorld.getLocations().size() << " locations!" << std::endl;
-        std::cout << "[IconiQuest] Headless test passed successfully!" << std::endl;
-        return 0;
+		std::cout << "[IconiQuest] Testing Dino map as well..." << std::endl;
+		World dinoWorld;
+		dinoWorld.setGameAssetsRoot(assetsRoot.string());
+		dinoWorld.setCurrentGame("dino");
+		std::string dinoMapPath = resolveMapPath("dino").string();
+		if (!dinoWorld.load(dinoMapPath, assetsRoot.string())) {
+			std::cerr << "[IconiQuest] Failed to load dino map!" << std::endl;
+			return 1;
+		}
+		std::cout << "[IconiQuest] Successfully loaded Dino map with " << dinoWorld.getLocations().size() << " locations!" << std::endl;
+		std::cout << "[IconiQuest] Headless test passed successfully!" << std::endl;
+		return 0;
     }
 
     bool running = true;

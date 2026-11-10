@@ -22,3 +22,6 @@
 	path = lib/pugixml
 	url = https://github.com/zeux/pugixml.git
 	branch = master
+[submodule "lib/SDL_ttf"]
+	path = lib/SDL_ttf
+	url = https://github.com/libsdl-org/SDL_ttf.git
