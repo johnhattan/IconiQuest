@@ -19,9 +19,8 @@ bool World::load(const std::string& tmxPath, const std::string& assetsDir) {
     m_noteAnchorActor = nullptr;
     m_inventoryItems.clear();
 
-    // Set paths
-    GlyphCache::instance().setImagesDir(assetsDir + "/images");
-    AudioEngine::instance().setSoundsDir(assetsDir + "/sounds");
+    // Set audio path only (glyph cache is managed by GlyphCache::setCurrentGame())
+    AudioEngine::instance().setSoundsDir(assetsDir + "/_default/sounds");
 
     if (!TmxLoader::loadWorld(*this, tmxPath)) {
         std::cerr << "[World] Failed to load " << tmxPath << std::endl;

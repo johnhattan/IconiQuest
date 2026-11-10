@@ -89,15 +89,13 @@ SDL_Texture* GlyphCache::getTexture(const std::string& glyphName) {
 
     std::string path = resolvePath(glyphName);
     if (path.empty()) {
-        std::cerr << "[GlyphCache] WARN: Could not resolve path for glyph '" << glyphName << "'" << std::endl;
-        std::cerr << "  (game='" << m_currentGame << "', assetsRoot='" << m_gameAssetsRoot << "', imagesDir='" << m_imagesDir << "')" << std::endl;
         m_textures[glyphName] = nullptr;
         return nullptr;
     }
 
     SDL_Surface* surface = IMG_Load(path.c_str());
     if (!surface) {
-        std::cerr << "[GlyphCache] WARN: IMG_Load failed for " << path << ": " << SDL_GetError() << std::endl;
+        std::cerr << "[GlyphCache] Failed to load " << path << ": " << SDL_GetError() << std::endl;
         m_textures[glyphName] = nullptr;
         return nullptr;
     }
@@ -106,7 +104,7 @@ SDL_Texture* GlyphCache::getTexture(const std::string& glyphName) {
     SDL_DestroySurface(surface);
 
     if (!tex) {
-        std::cerr << "[GlyphCache] WARN: SDL_CreateTextureFromSurface failed for " << path << ": " << SDL_GetError() << std::endl;
+        std::cerr << "[GlyphCache] Failed to create texture for " << path << ": " << SDL_GetError() << std::endl;
     }
 
     m_textures[glyphName] = tex;
