@@ -25,3 +25,9 @@
 [submodule "lib/SDL_ttf"]
 	path = lib/SDL_ttf
 	url = https://github.com/libsdl-org/SDL_ttf.git
+[submodule "lib/tweeny"]
+	path = lib/tweeny
+	url = https://github.com/mobius3/tweeny.git
+[submodule "lib/SDL3_gfx"]
+	path = lib/SDL3_gfx
+	url = https://github.com/sabdul-khabir/SDL3_gfx.git
