@@ -153,23 +153,23 @@ void Actor::onPlace()
 
 			// Check if all revealers in this location targeting targetName have revealed it
 			bool isAllRevealed = true;
-			for (const auto& otherActor : pLocation->getActors())
+			const auto& actors = pLocation->getActors();
+			for (uindex i = 0; (i < actors.size()) && isAllRevealed; ++i)
 			{
-				if (!otherActor)
-					continue;
-				for (const auto& otherTarget : otherActor->getAllRevealTargets())
+				const auto& otherActor = actors[i];
+				if (otherActor)
 				{
-					if (iequals(otherTarget, targetName))
+					const auto& otherTargets = otherActor->getAllRevealTargets();
+					for (uindex j = 0; (j < otherTargets.size()) && isAllRevealed; ++j)
 					{
-						if (!otherActor->props.getBool(otherTarget + "Revealed", false))
+						const auto& otherTarget = otherTargets[j];
+						if (iequals(otherTarget, targetName))
 						{
-							isAllRevealed = false;
-							break;
+							if (!otherActor->props.getBool(otherTarget + "Revealed", false))
+								isAllRevealed = false;
 						}
 					}
 				}
-				if (!isAllRevealed)
-					break;
 			}
 
 			observer_ptr<Actor> pTarget = pLocation->findActor(targetName);

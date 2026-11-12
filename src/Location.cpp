@@ -25,34 +25,25 @@ observer_ptr<Actor> Location::findActor(const std::string& rName) const
 	bool nameEmpty = rName.empty();
 
 	if (!nameEmpty)
-	{
-		// Try exact match first
+	{ // Try exact match first
 		for (const auto& pActor : actors)
-		{
 			if (pActor && pActor->getName() == rName)
-			{
 				retVal = pActor.get();
-			}
-		}
 
-		// Case-insensitive fallback if no exact match
 		if (!retVal)
-		{
+		{ // Case-insensitive fallback if no exact match
 			for (const auto& pActor : actors)
 			{
 				if (pActor)
 				{
 					const std::string& rActorName = pActor->getName();
 					bool sizeMatch = rActorName.size() == rName.size();
-					bool caseInsensitiveMatch = sizeMatch && std::equal(rActorName.begin(), rActorName.end(), rName.begin(), 
-						[](char c1, char c2) {
-							return std::tolower((unsigned char)c1) == std::tolower((unsigned char)c2);
-						});
-					
+					bool caseInsensitiveMatch = sizeMatch && std::equal(rActorName.begin(), rActorName.end(), rName.begin(), [](char c1, char c2) {
+						return std::tolower((unsigned char)c1) == std::tolower((unsigned char)c2);
+					});
+
 					if (caseInsensitiveMatch)
-					{
 						retVal = pActor.get();
-					}
 				}
 			}
 		}
@@ -90,9 +81,7 @@ void Location::takeActor(observer_ptr<Actor> pActor)
 			{
 				std::unique_ptr<Actor> pPtr = pOldLoc->removeActor(pActor);
 				if (pPtr)
-				{
 					addActor(std::move(pPtr));
-				}
 			}
 		}
 	}
@@ -102,11 +91,9 @@ Color Location::getBackgroundColor() const
 {
 	std::string rHex = props.get("colorBackground");
 	Color retVal = { 15, 15, 20, 255 };
-	
+
 	if (!rHex.empty())
-	{
 		retVal = Color::fromHex(rHex, { 15, 15, 20, 255 });
-	}
 
 	return retVal;
 }
@@ -114,32 +101,20 @@ Color Location::getBackgroundColor() const
 void Location::revert()
 {
 	props.revert();
-	
+
 	// Two-pass revert so resetting one actor's deltas does not wipe another's onPlace state
 	for (auto& pActor : actors)
-	{
 		if (pActor)
-		{
 			pActor->props.revert();
-		}
-	}
-	
+
 	for (auto& pActor : actors)
-	{
 		if (pActor)
-		{
 			pActor->onPlace();
-		}
-	}
 }
 
 void Location::render(SDL_Renderer* pRenderer, f32 alpha)
 {
 	for (auto& pActor : actors)
-	{
 		if (pActor)
-		{
 			pActor->render(pRenderer, alpha);
-		}
-	}
 }

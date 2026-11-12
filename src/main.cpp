@@ -33,28 +33,30 @@ namespace
 
 	std::filesystem::path resolveAssetsRoot()
 	{
-		for (auto& root : candidateAssetRoots())
+		std::filesystem::path retVal("assets");
+		const auto& roots = candidateAssetRoots();
+		for (usize i = 0; (i < roots.size()) && retVal == std::filesystem::path("assets"); ++i)
 		{
+			auto& root = roots[i];
 			auto assetsPath = (root / "assets").lexically_normal();
 			if (std::filesystem::exists(assetsPath / "_default"))
-			{
-				return assetsPath;
-			}
+				retVal = assetsPath;
 		}
-		return std::filesystem::path("assets");
+		return retVal;
 	}
 
 	std::filesystem::path resolveMapPath(const std::string& gameName)
 	{
 		auto assetsRoot = resolveAssetsRoot();
 		std::string mapFileName = "_map.tmx";
+		std::filesystem::path retVal;
 
 		if (gameName.empty() || gameName == "_default")
-		{
-			return assetsRoot / "_default" / mapFileName;
-		}
+			retVal = assetsRoot / "_default" / mapFileName;
+		else
+			retVal = assetsRoot / gameName / mapFileName;
 
-		return assetsRoot / gameName / mapFileName;
+		return retVal;
 	}
 
 	std::string getDefaultFontPath()
@@ -311,12 +313,9 @@ i32 main(i32 argc, char* argv[])
 								ImGui_ImplSDL3_ProcessEvent(&event);
 
 								if (event.type == SDL_EVENT_QUIT)
-								{
 									running = false;
-								}
 								else if (event.type == SDL_EVENT_KEY_DOWN)
-								{
-									// Key handling removed (editor toggle was here)
+								{ // deal with key events here
 								}
 								else if (event.type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED || event.type == SDL_EVENT_WINDOW_RESIZED)
 								{
@@ -330,9 +329,7 @@ i32 main(i32 argc, char* argv[])
 									if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
 									{
 										if (event.button.button == SDL_BUTTON_LEFT)
-										{
 											world.handleMouseDown({ (f32)event.button.x, (f32)event.button.y });
-										}
 									}
 									else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
 									{
@@ -346,17 +343,13 @@ i32 main(i32 argc, char* argv[])
 												lastClickTime = 0;
 											}
 											else
-											{
 												lastClickTime = currentMs;
-											}
 
 											world.handleMouseUp({ (f32)event.button.x, (f32)event.button.y }, taps);
 										}
 									}
 									else if (event.type == SDL_EVENT_MOUSE_MOTION)
-									{
 										world.handleMouseMove({ (f32)event.motion.x, (f32)event.motion.y });
-									}
 								}
 							}
 

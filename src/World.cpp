@@ -34,26 +34,21 @@ bool World::load(const std::string& rTmxPath, const std::string& rAssetsDir)
 	if (retVal)
 	{
 		// Determine start location
-		for (const auto& loc : locations)
+		for (uindex i = 0; (i < locations.size()) && !startLocation; ++i)
 		{
+			const auto& loc = locations[i];
 			if (loc->props.getBool("locationStart", false))
-			{
 				startLocation = loc.get();
-				break;
-			}
 		}
+
 		if (!startLocation)
-		{
 			startLocation = findLocation("part1");
-		}
+
 		if (!startLocation)
-		{
 			startLocation = findLocation("0-0");
-		}
+
 		if (!startLocation && !locations.empty())
-		{
 			startLocation = locations.front().get();
-		}
 
 		currentLocation = startLocation;
 		if (currentLocation)
@@ -76,10 +71,8 @@ bool World::load(const std::string& rTmxPath, const std::string& rAssetsDir)
 		for (const auto& loc : locations)
 		{
 			for (const auto& a : loc->getActors())
-			{
 				if (a)
 					a->onPlace();
-			}
 		}
 	}
 
@@ -90,9 +83,7 @@ bool World::save()
 {
 	bool retVal = false;
 	if (!tmxPath.empty())
-	{
 		retVal = TmxLoader::saveWorld(*this, tmxPath);
-	}
 	return retVal;
 }
 
@@ -107,13 +98,11 @@ void World::addLocation(std::unique_ptr<Location> pLoc)
 observer_ptr<Location> World::findLocation(const std::string& rName) const
 {
 	observer_ptr<Location> retVal = nullptr;
-	for (const auto& l : locations)
+	for (uindex i = 0; (i < locations.size()) && !retVal; ++i)
 	{
+		const auto& l = locations[i];
 		if (l && l->getName() == rName)
-		{
 			retVal = l.get();
-			break;
-		}
 	}
 	return retVal;
 }
@@ -139,27 +128,20 @@ void World::changeLocation(const std::string& rName, f32 transitionTime)
 			AudioEngine::instance().playSfx(enterSnd);
 
 		for (const auto& a : loc->getActors())
-		{
 			if (a)
 				a->onPlace();
-		}
 	}
 }
 
 void World::switchGame(const std::string& rGameName, f32 transitionTime)
-{
-	// Resolve the map path for the new game
+{ // Resolve the map path for the new game
 	std::string mapFileName = "_map.tmx";
 	std::filesystem::path newMapPath;
 
 	if (rGameName.empty() || rGameName == "_default")
-	{
 		newMapPath = std::filesystem::path(gameAssetsRoot) / "_default" / mapFileName;
-	}
 	else
-	{
 		newMapPath = std::filesystem::path(gameAssetsRoot) / rGameName / mapFileName;
-	}
 
 	// Clear current game state
 	locations.clear();
@@ -177,43 +159,34 @@ void World::switchGame(const std::string& rGameName, f32 transitionTime)
 	// Load the new map
 	bool loadSuccess = load(newMapPath.string(), gameAssetsRoot);
 	if (!loadSuccess)
-	{
 		std::cerr << "[World] Failed to load game '" << rGameName << "' from " << newMapPath.string() << std::endl;
-	}
 
 	if (loadSuccess)
-	{
-		// Frame the first location with transition
+	{ // Frame the first location with transition
 		if (currentLocation)
-		{
 			camera.frameRect(currentLocation->getBounds(), transitionTime);
-		}
 	}
 }
 
 void World::revertWorld()
 {
 	for (auto& loc : locations)
-	{
 		if (loc)
 			loc->revert();
-	}
+
 	inventoryItems.clear();
 	actorBeingDragged = nullptr;
 	hideNoteBubble();
 
 	if (startLocation)
-	{
 		changeLocation(startLocation->getName(), 0.0f);
-	}
 }
 
 void World::revertCurrentLocation()
 {
 	if (currentLocation)
-	{
 		currentLocation->revert();
-	}
+
 	hideNoteBubble();
 }
 
@@ -236,14 +209,9 @@ bool World::isItemInInventory(const observer_ptr<Actor> pActor) const
 	bool retVal = false;
 	if (pActor)
 	{
-		for (const auto& item : inventoryItems)
-		{
-			if (item == pActor)
-			{
+		for (uindex i = 0; (i < inventoryItems.size()) && !retVal; ++i)
+			if (inventoryItems[i] == pActor)
 				retVal = true;
-				break;
-			}
-		}
 	}
 	return retVal;
 }
@@ -270,9 +238,8 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 		f32 trayY = 70.0f;
 		f32Rectangle trayRect(trayX, trayY, 310.0f, 180.0f);
 		if (trayRect.contains(rScreenPt))
-		{
-			// Find item in inventory
-			for (auto it = inventoryItems.begin(); it != inventoryItems.end(); ++it)
+		{ // Find item in inventory
+			for (auto it = inventoryItems.begin(); (it != inventoryItems.end()) && !retVal; ++it)
 			{
 				observer_ptr<Actor> item = *it;
 				f32Rectangle ib(item->getPos().x - item->getWidth() * 0.5f, item->getPos().y - item->getHeight() * 0.5f, item->getWidth(), item->getHeight());
@@ -282,15 +249,13 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 					dragOffset = item->getPos() - rScreenPt;
 					inventoryItems.erase(it);
 					retVal = true;
-					break;
 				}
 			}
 			if (!retVal)
 				retVal = true; // Click absorbed by tray
 		}
 		else if (currentLocation && !camera.isTransitioning())
-		{
-			// 3. Check Actors in Current Room
+		{ // 3. Check Actors in Current Room
 			f32Point worldPt = camera.screenToWorld(rScreenPt);
 
 			observer_ptr<Actor> closestDraggable = nullptr;
@@ -298,17 +263,15 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 
 			for (const auto& a : currentLocation->getActors())
 			{
-				if (!a || a->isHidden() || isItemInInventory(a.get()))
-					continue;
-				if (!a->isDraggable())
-					continue;
-
-				f32 dist = a->getPos().distance(worldPt);
-				f32 touchRadius = std::max(a->getWidth(), a->getHeight()) * 0.55f;
-				if (dist < touchRadius && dist < minDist)
+				if (a && !a->isHidden() && !isItemInInventory(a.get()) && a->isDraggable())
 				{
-					minDist = dist;
-					closestDraggable = a.get();
+					f32 dist = a->getPos().distance(worldPt);
+					f32 touchRadius = std::max(a->getWidth(), a->getHeight()) * 0.55f;
+					if (dist < touchRadius && dist < minDist)
+					{
+						minDist = dist;
+						closestDraggable = a.get();
+					}
 				}
 			}
 
@@ -324,8 +287,7 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 		}
 	}
 	else if (currentLocation && !camera.isTransitioning())
-	{
-		// 3. Check Actors in Current Room
+	{ // 3. Check Actors in Current Room
 		f32Point worldPt = camera.screenToWorld(rScreenPt);
 
 		observer_ptr<Actor> closestDraggable = nullptr;
@@ -333,17 +295,15 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 
 		for (const auto& a : currentLocation->getActors())
 		{
-			if (!a || a->isHidden() || isItemInInventory(a.get()))
-				continue;
-			if (!a->isDraggable())
-				continue;
-
-			f32 dist = a->getPos().distance(worldPt);
-			f32 touchRadius = std::max(a->getWidth(), a->getHeight()) * 0.55f;
-			if (dist < touchRadius && dist < minDist)
+			if (a && !a->isHidden() && !isItemInInventory(a.get()) && a->isDraggable())
 			{
-				minDist = dist;
-				closestDraggable = a.get();
+				f32 dist = a->getPos().distance(worldPt);
+				f32 touchRadius = std::max(a->getWidth(), a->getHeight()) * 0.55f;
+				if (dist < touchRadius && dist < minDist)
+				{
+					minDist = dist;
+					closestDraggable = a.get();
+				}
 			}
 		}
 
@@ -371,9 +331,8 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 	mouseScreenPos = rScreenPt;
 	bool retVal = false;
 
-	// If dragging an item, handle drop
 	if (actorBeingDragged)
-	{
+	{ // If dragging an item, handle drop
 		observer_ptr<Actor> dragged = actorBeingDragged;
 		actorBeingDragged = nullptr;
 
@@ -384,54 +343,42 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 			f32 trayY = 70.0f;
 			f32Rectangle trayRect(trayX, trayY, 310.0f, 180.0f);
 			if (trayRect.contains(rScreenPt))
-			{
-				// Snap into inventory
+			{ // Snap into inventory
 				inventoryItems.push_back(dragged);
 				dragged->setPos(rScreenPt);
 				AudioEngine::instance().playSfx("sfxDrawer");
 				retVal = true;
 			}
-			else
-			{
-				retVal = false; // Will check actor drop below
-			}
 		}
 
-		if (!retVal)
+		if (!retVal && currentLocation)
 		{
 			// Check if dropped onto another actor in current room
-			if (currentLocation)
+			f32Point worldPt = camera.screenToWorld(rScreenPt);
+			for (uindex i = 0; (i < currentLocation->getActors().size()) && !retVal; ++i)
 			{
-				f32Point worldPt = camera.screenToWorld(rScreenPt);
-				for (const auto& a : currentLocation->getActors())
+				const auto& a = currentLocation->getActors()[i];
+				if (a && a.get() != dragged && !a->isHidden() && !isItemInInventory(a.get()))
 				{
-					if (!a || a.get() == dragged || a->isHidden() || isItemInInventory(a.get()))
-						continue;
-
 					f32 dist = a->getPos().distance(worldPt);
 					f32 touchRadius = std::max(a->getWidth(), a->getHeight()) * 0.75f;
 					if (dist < touchRadius)
 					{
 						if (a->onDrop(dragged))
-						{
 							retVal = true;
-							break;
-						}
 					}
 				}
 			}
 		}
 
 		if (!retVal)
-		{
-			// Drop missed: snap back
+		{ // Drop missed: snap back
 			dragged->setPos(dragged->getOrgPos());
 			retVal = true;
 		}
 	}
 	else if (currentLocation && !camera.isTransitioning())
-	{
-		// Standard Tap / Click
+	{ // Standard Tap / Click
 		f32Point worldPt = camera.screenToWorld(rScreenPt);
 
 		observer_ptr<Actor> closestActor = nullptr;
@@ -439,26 +386,22 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 
 		for (const auto& a : currentLocation->getActors())
 		{
-			if (!a || a->isHidden() || isItemInInventory(a.get()))
-				continue;
-
-			f32 dist = a->getPos().distance(worldPt);
-			f32 touchRadius = std::max(a->getWidth(), a->getHeight()) * 0.60f;
-			if (dist < touchRadius && dist < minDist)
+			if (a && !a->isHidden() && !isItemInInventory(a.get()))
 			{
-				minDist = dist;
-				closestActor = a.get();
+				f32 dist = a->getPos().distance(worldPt);
+				f32 touchRadius = std::max(a->getWidth(), a->getHeight()) * 0.60f;
+				if (dist < touchRadius && dist < minDist)
+				{
+					minDist = dist;
+					closestActor = a.get();
+				}
 			}
 		}
 
 		if (closestActor)
-		{
 			retVal = closestActor->onTap(numTaps);
-		}
 		else
-		{
 			hideNoteBubble();
-		}
 	}
 
 	return retVal;
@@ -472,9 +415,7 @@ void World::update(f32 dt)
 	{
 		noteTimer -= dt;
 		if (noteTimer <= 0.0f)
-		{
 			hideNoteBubble();
-		}
 	}
 
 	// Animate inventory slide
@@ -483,59 +424,38 @@ void World::update(f32 dt)
 }
 
 void World::render(SDL_Renderer* pRenderer)
-{
-	// 1. Draw Room Background
+{ // 1. Draw Room Background
 	Color bgColor = currentLocation ? currentLocation->getBackgroundColor() : Color{ 15, 15, 20, 255 };
 	SDL_SetRenderDrawColor(pRenderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
 	SDL_RenderClear(pRenderer);
 
-	// 2. Draw Room Actors
 	if (currentLocation)
-	{
+	{ // 2. Draw Room Actors
 		for (const auto& a : currentLocation->getActors())
 		{
-			if (!a || a->isHidden() || isItemInInventory(a.get()))
-				continue;
-			if (a.get() == actorBeingDragged)
-				continue; // Drawn on ceiling
-
-			f32Rectangle screenBounds = camera.worldToScreenRect(a->getBounds());
-			if (a->isDrawBackground())
+			if (a && !a->isHidden() && !isItemInInventory(a.get()) && a.get() != actorBeingDragged)
 			{
-				GlyphCache::instance().renderBlankBackground(screenBounds);
+				f32Rectangle screenBounds = camera.worldToScreenRect(a->getBounds());
+				if (a->isDrawBackground())
+					GlyphCache::instance().renderBlankBackground(screenBounds);
+				GlyphCache::instance().renderGlyph(a->getActiveGlyph(), screenBounds, a->getRotation(), a->getFlipHoriz(), a->getFlipVert());
 			}
-			GlyphCache::instance().renderGlyph(
-			    a->getActiveGlyph(),
-			    screenBounds,
-			    a->getRotation(),
-			    a->getFlipHoriz(),
-			    a->getFlipVert());
 		}
 	}
 
-	// 3. Draw Note / Speech Bubble if active
-	renderNoteBubble(pRenderer);
+	renderNoteBubble(pRenderer); // 3. Draw Note / Speech Bubble if active
 
-	// 4. Draw Inventory Drawer & Toggle Button
-	renderInventoryPod(pRenderer);
+	renderInventoryPod(pRenderer); // 4. Draw Inventory Drawer & Toggle Button
 
-	// 5. Draw Actor Being Dragged (Ceiling layer under mouse)
 	if (actorBeingDragged)
-	{
+	{ // 5. Draw Actor Being Dragged (Ceiling layer under mouse)
 		f32 w = actorBeingDragged->getWidth() * camera.getScale();
 		f32 h = actorBeingDragged->getHeight() * camera.getScale();
 		f32Rectangle dragBounds(mouseScreenPos.x - w * 0.5f, mouseScreenPos.y - h * 0.5f, w, h);
 		if (actorBeingDragged->isDrawBackground())
-		{
 			GlyphCache::instance().renderBlankBackground(dragBounds, 0.9f);
-		}
-		GlyphCache::instance().renderGlyph(
-		    actorBeingDragged->getActiveGlyph(),
-		    dragBounds,
-		    actorBeingDragged->getRotation(),
-		    actorBeingDragged->getFlipHoriz(),
-		    actorBeingDragged->getFlipVert(),
-		    0.9f);
+
+		GlyphCache::instance().renderGlyph(actorBeingDragged->getActiveGlyph(), dragBounds, actorBeingDragged->getRotation(), actorBeingDragged->getFlipHoriz(), actorBeingDragged->getFlipVert(), 0.9f);
 	}
 }
 
@@ -557,32 +477,28 @@ void World::renderNoteBubble(SDL_Renderer* pRenderer)
 		{
 			const std::string& noteEntry = activeNotes[i];
 
-			if (noteEntry == "blank" || noteEntry.empty())
-				continue;
-
-			// Check if this is text (bracketed with #)
-			if (!noteEntry.empty() && noteEntry.front() == '#' && noteEntry.back() == '#')
-			{
-				// Strip the # brackets and treat as text
-				std::string textContent = noteEntry.substr(1, noteEntry.length() - 2);
-				if (!textContent.empty())
-				{
-					if (!bubbleText.empty())
-						bubbleText += "\n";
-					bubbleText += textContent;
-					hasTextContent = true;
+			if (!(noteEntry == "blank" || noteEntry.empty()))
+			{ // Check if this is text (bracketed with #)
+				if (!noteEntry.empty() && noteEntry.front() == '#' && noteEntry.back() == '#')
+				{ // Strip the # brackets and treat as text
+					std::string textContent = noteEntry.substr(1, noteEntry.length() - 2);
+					if (!textContent.empty())
+					{
+						if (!bubbleText.empty())
+							bubbleText += "\n";
+						bubbleText += textContent;
+						hasTextContent = true;
+					}
 				}
-			}
-			else
-			{
-				// It's a glyph name
-				glyphNotes.push_back(noteEntry);
+				else
+				{ // It's a glyph name
+					glyphNotes.push_back(noteEntry);
+				}
 			}
 		}
 
-		// If we have text content, render it
 		if (hasTextContent)
-		{
+		{ // If we have text content, render it
 			f32 textPadding = 12.0f;
 			f32 maxWidth = 300.0f;
 
@@ -609,8 +525,7 @@ void World::renderNoteBubble(SDL_Renderer* pRenderer)
 			FontEngine::instance().renderText(pRenderer, bubbleText, textRect, textColor, true);
 		}
 		else if (!glyphNotes.empty())
-		{
-			// Render glyphs (original behavior)
+		{ // Render glyphs (original behavior)
 			f32 iconSize = 40.0f;
 			f32 padding = 10.0f;
 			f32 totalW = glyphNotes.size() * (iconSize + padding) + padding;
@@ -627,9 +542,8 @@ void World::renderNoteBubble(SDL_Renderer* pRenderer)
 			SDL_SetRenderDrawColor(pRenderer, 40, 40, 45, 255);
 			SDL_RenderRect(pRenderer, &bgRect);
 
-			// Render sequence of note icons
 			for (uindex i = 0; i < glyphNotes.size(); ++i)
-			{
+			{ // Render sequence of note icons
 				f32 ix = bubbleX + padding + i * (iconSize + padding);
 				f32 iy = bubbleY + padding;
 				f32Rectangle iconBounds(ix, iy, iconSize, iconSize);
@@ -679,13 +593,10 @@ void World::renderInventoryPod(SDL_Renderer* pRenderer)
 			}
 		}
 
-		// Render collected items inside slots
-		for (uindex i = 0; i < inventoryItems.size(); ++i)
-		{
+		for (uindex i = 0; (i < inventoryItems.size()) && (i32)(i / cols) < rows; ++i)
+		{ // Render collected items inside slots
 			i32 r = (i32)(i / cols);
 			i32 c = (i32)(i % cols);
-			if (r >= rows)
-				break;
 			f32 sx = currentX + 16.0f + c * (slotSize + gap);
 			f32 sy = currentY + 16.0f + r * (slotSize + gap);
 			f32Rectangle itemRect(sx, sy, slotSize, slotSize);

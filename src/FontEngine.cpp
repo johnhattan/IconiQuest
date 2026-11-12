@@ -21,13 +21,9 @@ bool FontEngine::init(const std::string& rFontPath, i32 pointSize)
 	bool initialized = false;
 
 	if (TTF_Init())
-	{
 		initialized = true;
-	}
 	else
-	{
 		std::cerr << "[FontEngine] Failed to init SDL_ttf: " << SDL_GetError() << std::endl;
-	}
 
 	if (initialized)
 	{
@@ -39,9 +35,7 @@ bool FontEngine::init(const std::string& rFontPath, i32 pointSize)
 			retVal = true;
 		}
 		else
-		{
 			std::cerr << "[FontEngine] Failed to load font from " << rFontPath << ": " << SDL_GetError() << std::endl;
-		}
 	}
 
 	return retVal;
@@ -50,12 +44,8 @@ bool FontEngine::init(const std::string& rFontPath, i32 pointSize)
 void FontEngine::shutdown()
 {
 	for (auto& [key, pTexture] : _textCache)
-	{
 		if (pTexture)
-		{
 			SDL_DestroyTexture(pTexture.get());
-		}
-	}
 
 	_textCache.clear();
 
@@ -94,14 +84,10 @@ void FontEngine::renderText(observer_ptr<SDL_Renderer> pRenderer, const std::str
 				SDL_DestroyTexture(pTexture.get());
 			}
 			else
-			{
 				std::cerr << "[FontEngine] Failed to create text texture: " << SDL_GetError() << std::endl;
-			}
 		}
 		else
-		{
 			std::cerr << "[FontEngine] Failed to render text surface: " << SDL_GetError() << std::endl;
-		}
 	}
 }
 
@@ -118,15 +104,11 @@ void FontEngine::renderText(observer_ptr<SDL_Renderer> pRenderer, const std::str
 		std::stringstream ss(unescaped);
 		std::string line;
 		while (std::getline(ss, line))
-		{
 			lines.push_back(line);
-		}
 
 		// If text ends with newline, add a final blank line
 		if (!unescaped.empty() && unescaped.back() == '\n')
-		{
 			lines.push_back("");
-		}
 
 		if (!lines.empty())
 		{
@@ -163,9 +145,7 @@ void FontEngine::renderText(observer_ptr<SDL_Renderer> pRenderer, const std::str
 
 			f32 currentY = rRect.y;
 			if (centered)
-			{
 				currentY = rRect.y + (rRect.h - totalHeight) * 0.5f;
-			}
 
 			// Render each line
 			for (uindex i = 0; i < lines.size(); ++i)
@@ -187,9 +167,7 @@ void FontEngine::renderText(observer_ptr<SDL_Renderer> pRenderer, const std::str
 
 						f32 x = rRect.x;
 						if (centered)
-						{
 							x = rRect.x + (rRect.w - w) * 0.5f;
-						}
 
 						SDL_FRect dstRect = { x, currentY, w, h };
 						SDL_RenderTexture(pRenderer.get(), pTexture.get(), NULL, &dstRect);
@@ -238,10 +216,8 @@ i32 FontEngine::getTextHeight(const std::string& rText) const
 		// Count lines
 		i32 lineCount = 1;
 		for (char c : unescaped)
-		{
 			if (c == '\n')
 				lineCount++;
-		}
 
 		height = lineHeight * lineCount;
 	}
@@ -262,9 +238,7 @@ std::string FontEngine::unescapeText(const std::string& rText) const
 			++i;
 		}
 		else
-		{
 			result += rText[i];
-		}
 	}
 
 	return result;

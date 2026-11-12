@@ -105,9 +105,8 @@ std::string AudioEngine::resolveSoundPath(const std::string& rName)
 	{
 		std::vector<std::string> exts = { ".ogg", ".mp3", ".wav", ".flac", ".mod" };
 
-		// First priority: try the game-specific sounds folder (if not using _default)
 		if (!_gameAssetsRoot.empty() && !_currentGame.empty() && _currentGame != "_default")
-		{
+		{ // First priority: try the game-specific sounds folder (if not using _default)
 			for (const auto& ext : exts)
 			{
 				std::filesystem::path p = std::filesystem::path(_gameAssetsRoot) / _currentGame / "sounds" / (rName + ext);
@@ -117,8 +116,7 @@ std::string AudioEngine::resolveSoundPath(const std::string& rName)
 		}
 
 		if (retVal.empty())
-		{
-			// Second priority: fall back to default sounds dir
+		{ // Second priority: fall back to default sounds dir
 			for (const auto& ext : exts)
 			{
 				std::filesystem::path p = std::filesystem::path(_soundsDir) / (rName + ext);
@@ -128,8 +126,7 @@ std::string AudioEngine::resolveSoundPath(const std::string& rName)
 		}
 
 		if (retVal.empty())
-		{
-			// Third priority: try direct file (no extension)
+		{ // Third priority: try direct file (no extension)
 			std::filesystem::path direct = std::filesystem::path(_soundsDir) / rName;
 			if (std::filesystem::exists(direct))
 				retVal = direct.string();

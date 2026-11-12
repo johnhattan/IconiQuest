@@ -28,12 +28,9 @@ void GlyphCache::shutdown()
 void GlyphCache::clear()
 {
 	for (auto& [name, pTex] : _textures)
-	{
 		if (pTex)
-		{
 			SDL_DestroyTexture(pTex.get());
-		}
-	}
+
 	_textures.clear();
 }
 
@@ -74,9 +71,7 @@ std::string GlyphCache::resolvePath(const std::string& rGlyphName)
 			{
 				std::filesystem::path p = std::filesystem::path(_gameAssetsRoot) / _currentGame / "images" / (rGlyphName + ext);
 				if (std::filesystem::exists(p))
-				{
 					retVal = p.string();
-				}
 			}
 		}
 
@@ -87,9 +82,7 @@ std::string GlyphCache::resolvePath(const std::string& rGlyphName)
 			{
 				std::filesystem::path p = std::filesystem::path(_imagesDir) / (rGlyphName + ext);
 				if (std::filesystem::exists(p))
-				{
 					retVal = p.string();
-				}
 			}
 		}
 
@@ -98,9 +91,7 @@ std::string GlyphCache::resolvePath(const std::string& rGlyphName)
 			// Third priority: try direct file (no extension)
 			std::filesystem::path direct = std::filesystem::path(_imagesDir) / rGlyphName;
 			if (std::filesystem::exists(direct))
-			{
 				retVal = direct.string();
-			}
 		}
 	}
 
@@ -117,17 +108,13 @@ observer_ptr<SDL_Texture> GlyphCache::getTexture(const std::string& rGlyphName)
 		auto it = _textures.find(rGlyphName);
 		bool found = it != _textures.end();
 		if (found)
-		{
 			retVal = it->second;
-		}
 		else
 		{
 			std::string path = resolvePath(rGlyphName);
 			bool pathFound = !path.empty();
 			if (!pathFound)
-			{
 				_textures[rGlyphName] = nullptr;
-			}
 			else
 			{
 				observer_ptr<SDL_Surface> pSurface(IMG_Load(path.c_str()));
@@ -142,9 +129,7 @@ observer_ptr<SDL_Texture> GlyphCache::getTexture(const std::string& rGlyphName)
 					SDL_DestroySurface(pSurface.get());
 
 					if (!pTex)
-					{
 						std::cerr << "[GlyphCache] Failed to create texture for " << path << ": " << SDL_GetError() << std::endl;
-					}
 
 					_textures[rGlyphName] = pTex;
 					retVal = pTex;
@@ -169,9 +154,7 @@ std::vector<std::string> GlyphCache::getAllGlyphs()
 				std::string ext = entry.path().extension().string();
 				bool isSvgOrPng = ext == ".svg" || ext == ".png";
 				if (isSvgOrPng)
-				{
 					results.push_back(entry.path().stem().string());
-				}
 			}
 		}
 		std::sort(results.begin(), results.end());
@@ -213,27 +196,17 @@ void GlyphCache::renderGlyph(const std::string& rGlyphName, const f32Rectangle& 
 			bool flipHOnly = flipH && !flipV;
 			bool flipVOnly = flipV && !flipH;
 			if (flipBoth)
-			{
 				flip = SDL_FLIP_HORIZONTAL_AND_VERTICAL;
-			}
 			else if (flipHOnly)
-			{
 				flip = SDL_FLIP_HORIZONTAL;
-			}
 			else if (flipVOnly)
-			{
 				flip = SDL_FLIP_VERTICAL;
-			}
 
 			bool hasTransform = rotation != 0.0f || flip != SDL_FLIP_NONE;
 			if (hasTransform)
-			{
 				SDL_RenderTextureRotated(_pRenderer.get(), pTex.get(), NULL, &fdst, (double)rotation, NULL, flip);
-			}
 			else
-			{
 				SDL_RenderTexture(_pRenderer.get(), pTex.get(), NULL, &fdst);
-			}
 		}
 	}
 }

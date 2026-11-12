@@ -10,16 +10,12 @@ bool TmxLoader::loadWorld(World& rWorld, const std::string& rTmxPath)
 	bool retVal = false;
 
 	if (!result)
-	{
 		std::cerr << "[TmxLoader] Error reading " << rTmxPath << ": " << result.description() << std::endl;
-	}
 	else
 	{
 		pugi::xml_node mapNode = doc.child("map");
 		if (!mapNode)
-		{
 			std::cerr << "[TmxLoader] Missing <map> tag in " << rTmxPath << std::endl;
-		}
 		else
 		{
 			f32 tileW = mapNode.attribute("tilewidth").as_float(48.0f);
@@ -70,9 +66,7 @@ bool TmxLoader::loadWorld(World& rWorld, const std::string& rTmxPath)
 						f32 oh = objNode.attribute("height").as_float(tileH);
 
 						if (objType == "Bounds" || objName == "dimensions")
-						{
 							loc->setBounds({ ox, oy, ow, oh });
-						}
 						else
 						{
 							// Tiled tile objects register at bottom-left
@@ -82,9 +76,7 @@ bool TmxLoader::loadWorld(World& rWorld, const std::string& rTmxPath)
 							auto actor = std::make_unique<Actor>(objName, loc.get(), f32Point(centerX, centerY), f32Size(ow, oh));
 							actor->props.setOrg("id", std::to_string(objNode.attribute("id").as_int()));
 							if (!objType.empty())
-							{
 								actor->props.setOrg("type", objType);
-							}
 
 							// Read object properties
 							pugi::xml_node objProps = objNode.child("properties");
@@ -134,8 +126,7 @@ bool TmxLoader::saveWorld(const World& rWorld, const std::string& rTmxPath)
 	for (const auto& loc : rWorld.getLocations())
 	{
 		if (!loc)
-		{
-			// Skip null locations
+		{ // Skip null locations
 		}
 		else
 		{
@@ -181,8 +172,7 @@ bool TmxLoader::saveWorld(const World& rWorld, const std::string& rTmxPath)
 			for (const auto& actor : loc->getActors())
 			{
 				if (!actor)
-				{
-					// Skip null actors
+				{ // Skip null actors
 				}
 				else
 				{
@@ -208,8 +198,7 @@ bool TmxLoader::saveWorld(const World& rWorld, const std::string& rTmxPath)
 					for (const auto& k : actor->props.allKeys())
 					{
 						if (k == "name" || k == "x" || k == "y" || k == "width" || k == "height" || k == "id")
-						{
-							// Skip reserved properties
+						{ // Skip reserved properties
 						}
 						else
 						{

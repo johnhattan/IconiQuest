@@ -32,9 +32,7 @@ struct Camera
 			_targetPos = rTarget.center();
 
 			if (duration <= 0.0f)
-			{
 				instantFrame(rTarget);
-			}
 			else
 			{
 				_duration = duration;
@@ -82,10 +80,7 @@ struct Camera
 
 	f32Point worldToScreen(const f32Point& rWorldPt) const
 	{
-		return {
-			(rWorldPt.x - _curPos.x) * _curScale + _viewport.width * 0.5f,
-			(rWorldPt.y - _curPos.y) * _curScale + _viewport.height * 0.5f
-		};
+		return { (rWorldPt.x - _curPos.x) * _curScale + _viewport.width * 0.5f, (rWorldPt.y - _curPos.y) * _curScale + _viewport.height * 0.5f };
 	}
 
 	f32Point screenToWorld(const f32Point& rScreenPt) const
