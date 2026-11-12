@@ -1,93 +1,75 @@
 #pragma once
 
-#include "pch.hpp"
+#include "Actor.hpp"
 #include "Camera.hpp"
 #include "Location.hpp"
-#include "Actor.hpp"
+#include "pch.hpp"
 
-class World {
-public:
+struct World
+{
+	std::string tmxPath;
+	std::string assetsDir;
+	std::string gameAssetsRoot;
+	std::string currentGame = "_default";
+	PropertyDictionary props;
+	std::vector<std::unique_ptr<Location>> locations;
+	observer_ptr<Location> currentLocation;
+	observer_ptr<Location> startLocation;
+	Camera camera;
+	observer_ptr<Actor> actorBeingDragged;
+	f32Point dragOffset;
+	f32Point mouseScreenPos;
+	observer_ptr<Actor> noteAnchorActor;
+	std::vector<std::string> activeNotes;
+	f32 noteTimer = 0.0f;
+	bool inventoryOpen = false;
+	f32 inventoryAnim = 0.0f;
+	std::vector<observer_ptr<Actor>> inventoryItems;
+
 	World();
 	~World();
 
-	bool load(const std::string& tmxPath, const std::string& assetsDir);
+	bool load(const std::string& rTmxPath, const std::string& rAssetsDir);
 	bool save();
 
-	PropertyDictionary& props() { return m_props; }
-	const PropertyDictionary& props() const { return m_props; }
+	PropertyDictionary& getProps() { return props; }
+	const PropertyDictionary& getProps() const { return props; }
 
-	const std::vector<std::unique_ptr<Location>>& getLocations() const { return m_locations; }
-	std::vector<std::unique_ptr<Location>>& getLocations() { return m_locations; }
+	const std::vector<std::unique_ptr<Location>>& getLocations() const { return locations; }
+	std::vector<std::unique_ptr<Location>>& getLocations() { return locations; }
 
-	void addLocation(std::unique_ptr<Location> loc);
-	Location* findLocation(const std::string& name) const;
-	Location* getCurrentLocation() const { return m_currentLocation; }
+	void addLocation(std::unique_ptr<Location> pLoc);
+	observer_ptr<Location> findLocation(const std::string& rName) const;
+	observer_ptr<Location> getCurrentLocation() const { return currentLocation; }
 
-	void changeLocation(const std::string& name, float transitionTime = 0.75f);
-	void switchGame(const std::string& gameName, float transitionTime = 0.75f);
+	void changeLocation(const std::string& rName, f32 transitionTime = 0.75f);
+	void switchGame(const std::string& rGameName, f32 transitionTime = 0.75f);
 	void revertWorld();
 	void revertCurrentLocation();
 
-	Camera& getCamera() { return m_camera; }
-	const Camera& getCamera() const { return m_camera; }
+	Camera& getCamera() { return camera; }
+	const Camera& getCamera() const { return camera; }
 
-	void showNoteBubble(Actor* anchor, const std::vector<std::string>& notes, float duration = 4.0f);
+	void showNoteBubble(observer_ptr<Actor> pAnchor, const std::vector<std::string>& rNotes, f32 duration = 4.0f);
 	void hideNoteBubble();
 
-	// Inventory Drawer (Pod)
-	bool isInventoryOpen() const { return m_inventoryOpen; }
-	void toggleInventory() { m_inventoryOpen = !m_inventoryOpen; }
-	void openInventory(bool open) { m_inventoryOpen = open; }
-	bool isItemInInventory(const Actor* actor) const;
+	bool isInventoryOpen() const { return inventoryOpen; }
+	void toggleInventory() { inventoryOpen = !inventoryOpen; }
+	void openInventory(bool open) { inventoryOpen = open; }
+	bool isItemInInventory(const observer_ptr<Actor> pActor) const;
 
-	// Input
-	bool handleMouseDown(const f32Point& screenPt);
-	bool handleMouseUp(const f32Point& screenPt, int numTaps = 1);
-	void handleMouseMove(const f32Point& screenPt);
+	bool handleMouseDown(const f32Point& rScreenPt);
+	bool handleMouseUp(const f32Point& rScreenPt, i32 numTaps = 1);
+	void handleMouseMove(const f32Point& rScreenPt);
 
-	void update(float dt);
-	void render(SDL_Renderer* renderer);
+	void update(f32 dt);
+	void render(SDL_Renderer* pRenderer);
 
-	Actor* getActorBeingDragged() const { return m_actorBeingDragged; }
-	const std::string& getTmxPath() const { return m_tmxPath; }
-	const std::string& getAssetsDir() const { return m_assetsDir; }
-
-	// Game and asset management
-	void setGameAssetsRoot(const std::string& root) { m_gameAssetsRoot = root; }
-	void setCurrentGame(const std::string& game) { m_currentGame = game; }
-	const std::string& getCurrentGame() const { return m_currentGame; }
+	void setGameAssetsRoot(const std::string& rRoot) { gameAssetsRoot = rRoot; }
+	void setCurrentGame(const std::string& rGame) { currentGame = rGame; }
+	const std::string& getCurrentGame() const { return currentGame; }
 
 private:
-	void renderNoteBubble(SDL_Renderer* renderer);
-	void renderInventoryPod(SDL_Renderer* renderer);
-
-	std::string m_tmxPath;
-	std::string m_assetsDir;
-	std::string m_gameAssetsRoot;
-	std::string m_currentGame = "_default";
-	PropertyDictionary m_props;
-
-	std::vector<std::unique_ptr<Location>> m_locations;
-	Location* m_currentLocation = nullptr;
-	Location* m_startLocation = nullptr;
-
-	Camera m_camera;
-
-	// Dragging
-	Actor* m_actorBeingDragged = nullptr;
-	f32Point m_dragOffset;
-	f32Point m_mouseScreenPos;
-
-	// Note Bubble
-	Actor* m_noteAnchorActor = nullptr;
-	std::vector<std::string> m_activeNotes;
-	float m_noteTimer = 0.0f;
-
-	// Inventory Pod
-	bool m_inventoryOpen = false;
-	float m_inventoryAnim = 0.0f;
-	std::vector<Actor*> m_inventoryItems;
-
-	float m_tileW = 48.0f;
-	float m_tileH = 48.0f;
+	void renderNoteBubble(SDL_Renderer* pRenderer);
+	void renderInventoryPod(SDL_Renderer* pRenderer);
 };

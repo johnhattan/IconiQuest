@@ -1,388 +1,443 @@
-#include "pch.hpp"
 #include "Actor.hpp"
+#include "AudioEngine.hpp"
+#include "GlyphCache.hpp"
 #include "Location.hpp"
 #include "World.hpp"
-#include "GlyphCache.hpp"
-#include "AudioEngine.hpp"
+#include "pch.hpp"
 
-Actor::Actor(
-    const std::string& name,
-    Location* location,
-    float x,
-    float y,
-    float width,
-    float height
-) : m_name(name), m_location(location), m_orgPos(x, y), m_width(width), m_height(height) {
-    m_props.setOrg("name", name);
-    m_props.setOrg("x", std::to_string(x));
-    m_props.setOrg("y", std::to_string(y));
-    m_props.setOrg("width", std::to_string(width));
-    m_props.setOrg("height", std::to_string(height));
+Actor::Actor(const std::string& rName, observer_ptr<Location> pLocation, const f32Point& rPos, const f32Size& rSize) :
+    name(rName),
+    pLocation(pLocation),
+    bounds(rPos, rSize)
+{
+	props.setOrg("name", rName);
+	props.setOrg("x", std::to_string(rPos.x));
+	props.setOrg("y", std::to_string(rPos.y));
+	props.setOrg("width", std::to_string(rSize.width));
+	props.setOrg("height", std::to_string(rSize.height));
 }
 
-f32Point Actor::getPos() const {
-    return {
-        m_props.getFloat("x", m_orgPos.x),
-        m_props.getFloat("y", m_orgPos.y)
-    };
+f32Point Actor::getPos() const
+{
+	return { props.getFloat("x", bounds.x), props.getFloat("y", bounds.y) };
 }
 
-void Actor::setPos(const f32Point& pos) {
-    m_props.setFloat("x", pos.x);
-    m_props.setFloat("y", pos.y);
+void Actor::setPos(const f32Point& rPos)
+{
+	props.setFloat("x", rPos.x);
+	props.setFloat("y", rPos.y);
 }
 
-f32Rect Actor::getBounds() const {
-    f32Point p = getPos();
-    return {
-        p.x - m_width * 0.5f,
-        p.y - m_height * 0.5f,
-        m_width,
-        m_height
-    };
+f32Rectangle Actor::getBounds() const
+{
+	f32Point p = getPos();
+	return { p.x - bounds.w * 0.5f, p.y - bounds.h * 0.5f, bounds.w, bounds.h };
 }
 
-bool Actor::isHidden() const {
-    if (m_props.has("hiddenUnlessActor")) {
-        std::string required = m_props.get("hiddenUnlessActor");
-        if (m_location && !m_location->findActor(required)) {
-            return true;
-        }
-    }
-    return m_props.getBool("hidden", false);
+bool Actor::isHidden() const
+{
+	bool retVal = false;
+	if (props.has("hiddenUnlessActor"))
+	{
+		std::string required = props.get("hiddenUnlessActor");
+		if (pLocation && !pLocation->findActor(required))
+			retVal = true;
+	}
+	return retVal || props.getBool("hidden", false);
 }
 
-void Actor::setHidden(bool hidden) {
-    m_props.setBool("hidden", hidden);
+void Actor::setHidden(bool hidden)
+{
+	props.setBool("hidden", hidden);
 }
 
-bool Actor::isDraggable() const {
-    return m_props.getBool("item", false) || m_props.getBool("draggable", false);
+bool Actor::isDraggable() const
+{
+	return props.getBool("item", false) || props.getBool("draggable", false);
 }
 
-bool Actor::isDrawBackground() const {
-    return m_props.getBool("drawBackground", true);
+bool Actor::isDrawBackground() const
+{
+	return props.getBool("drawBackground", true);
 }
 
-std::string Actor::getActiveGlyph() const {
-    bool toggled = m_props.getBool("toggled", false);
-    if (toggled) {
-        if (m_props.has("glyphToggled")) return m_props.get("glyphToggled");
-        return m_name + "Toggled";
-    }
+std::string Actor::getActiveGlyph() const
+{
+	std::string retVal(name);
 
-    if (m_props.has("glyphRevealed") && m_props.getBool("revealed", false)) {
-        return m_props.get("glyphRevealed");
-    }
+	if (props.getBool("toggled", false))
+	{
+		if (props.has("glyphToggled"))
+			retVal = props.get("glyphToggled");
+		else
+			retVal = name + "Toggled";
+	}
 
-    if (m_props.has("glyph")) {
-        return m_props.get("glyph");
-    }
+	if (props.has("glyphRevealed") && props.getBool("revealed", false))
+		retVal = props.get("glyphRevealed");
 
-    return m_name;
+	if (props.has("glyph"))
+		retVal = props.get("glyph");
+
+	return retVal;
 }
 
-static bool iequals(const std::string& a, const std::string& b) {
-    if (a.size() != b.size()) return false;
-    for (size_t i = 0; i < a.size(); ++i) {
-        if (std::tolower((unsigned char)a[i]) != std::tolower((unsigned char)b[i])) return false;
-    }
-    return true;
+static bool iequals(const std::string& a, const std::string& b)
+{
+	bool retVal = true;
+	if (a.size() != b.size())
+		retVal = false;
+	else
+	{
+		for (uindex i = 0; (i < a.size()) && retVal; ++i)
+			if (std::tolower((unsigned char)a[i]) != std::tolower((unsigned char)b[i]))
+				retVal = false;
+	}
+	return retVal;
 }
 
-std::vector<std::string> Actor::getRevealActors() const {
-    return m_props.getList("revealActor");
+std::vector<std::string> Actor::getRevealActors() const
+{
+	return props.getList("revealActor");
 }
 
-std::vector<std::string> Actor::getRevealActorsSync() const {
-    return m_props.getList("revealActorSync");
+std::vector<std::string> Actor::getRevealActorsSync() const
+{
+	return props.getList("revealActorSync");
 }
 
-std::vector<std::string> Actor::getAllRevealTargets() const {
-    std::vector<std::string> all = getRevealActors();
-    std::vector<std::string> sync = getRevealActorsSync();
-    all.insert(all.end(), sync.begin(), sync.end());
-    return all;
+std::vector<std::string> Actor::getAllRevealTargets() const
+{
+	std::vector<std::string> all = getRevealActors();
+	std::vector<std::string> sync = getRevealActorsSync();
+	all.insert(all.end(), sync.begin(), sync.end());
+	return all;
 }
 
-bool Actor::isRevealer() const {
-    return !getAllRevealTargets().empty();
+bool Actor::isRevealer() const
+{
+	return !getAllRevealTargets().empty();
 }
 
-float Actor::getRotation() const {
-    return m_props.getFloat("glyphRotation", 0.0f);
+f32 Actor::getRotation() const
+{
+	return props.getFloat("glyphRotation", 0.0f);
 }
 
-bool Actor::getFlipHoriz() const {
-    return m_props.getBool("glyphFlipHoriz", false);
+bool Actor::getFlipHoriz() const
+{
+	return props.getBool("glyphFlipHoriz", false);
 }
 
-bool Actor::getFlipVert() const {
-    return m_props.getBool("glyphFlipVert", false);
+bool Actor::getFlipVert() const
+{
+	return props.getBool("glyphFlipVert", false);
 }
 
-void Actor::onPlace() {
-    // 1. Reveal targets update
-    std::vector<std::string> allReveals = getAllRevealTargets();
-    if (!allReveals.empty() && m_location) {
-        float xDelta = m_props.getFloat("revealDeltaX", 0.0f);
-        float yDelta = m_props.getFloat("revealDeltaY", 0.0f);
-        bool revealerHide = m_props.getBool("revealerHide", false);
+void Actor::onPlace()
+{ // 1. Reveal targets update
+	std::vector<std::string> allReveals = getAllRevealTargets();
+	if (!allReveals.empty() && pLocation)
+	{
+		float xDelta = props.getFloat("revealDeltaX", 0.0f);
+		float yDelta = props.getFloat("revealDeltaY", 0.0f);
+		bool revealerHide = props.getBool("revealerHide", false);
 
-        bool anyRevealed = false;
+		bool anyRevealed = false;
 
-        for (const auto& targetName : allReveals) {
-            bool isRev = m_props.getBool(targetName + "Revealed", false);
-            if (isRev) anyRevealed = true;
+		for (const auto& targetName : allReveals)
+		{
+			bool isRev = props.getBool(targetName + "Revealed", false);
+			if (isRev)
+				anyRevealed = true;
 
-            // Check if all revealers in this location targeting targetName have revealed it
-            bool isAllRevealed = true;
-            for (const auto& otherActor : m_location->getActors()) {
-                if (!otherActor) continue;
-                for (const auto& otherTarget : otherActor->getAllRevealTargets()) {
-                    if (iequals(otherTarget, targetName)) {
-                        if (!otherActor->props().getBool(otherTarget + "Revealed", false)) {
-                            isAllRevealed = false;
-                            break;
-                        }
-                    }
-                }
-                if (!isAllRevealed) break;
-            }
+			// Check if all revealers in this location targeting targetName have revealed it
+			bool isAllRevealed = true;
+			for (const auto& otherActor : pLocation->getActors())
+			{
+				if (!otherActor)
+					continue;
+				for (const auto& otherTarget : otherActor->getAllRevealTargets())
+				{
+					if (iequals(otherTarget, targetName))
+					{
+						if (!otherActor->props.getBool(otherTarget + "Revealed", false))
+						{
+							isAllRevealed = false;
+							break;
+						}
+					}
+				}
+				if (!isAllRevealed)
+					break;
+			}
 
-            Actor* target = m_location->findActor(targetName);
-            if (target) {
-                World* world = m_location->getWorld();
-                if (!world || !world->isItemInInventory(target)) {
-                    target->setHidden(!isAllRevealed);
-                }
-            }
-        }
+			observer_ptr<Actor> pTarget = pLocation->findActor(targetName);
+			if (pTarget)
+			{
+				observer_ptr<World> world = pLocation->getWorld();
+				if (!world || !world->isItemInInventory(pTarget.get()))
+					pTarget->setHidden(!isAllRevealed);
+			}
+		}
 
-        // Apply revealer motion (revealDeltaX / revealDeltaY)
-        if (xDelta != 0.0f || yDelta != 0.0f) {
-            if (anyRevealed) {
-                setPos({m_orgPos.x + xDelta, m_orgPos.y + yDelta});
-            } else {
-                setPos(m_orgPos);
-            }
-        }
+		// Apply revealer motion (revealDeltaX / revealDeltaY)
+		if (xDelta != 0.0f || yDelta != 0.0f)
+		{
+			if (anyRevealed)
+				setPos({ bounds.x + xDelta, bounds.y + yDelta });
+			else
+				setPos(bounds.getPosition());
+		}
 
-        // Apply revealerHide
-        if (revealerHide) {
-            setHidden(anyRevealed);
-        }
+		// Apply revealerHide
+		if (revealerHide)
+			setHidden(anyRevealed);
 
-        // Mark revealer itself as revealed for glyphRevealed
-        m_props.setBool("revealed", anyRevealed);
-    }
+		props.setBool("revealed", anyRevealed); // Mark revealer itself as revealed for glyphRevealed
+	}
 
-    // 2. Check position offsets from mover (moveDeltaX / moveDeltaY)
-    std::vector<std::string> dx = m_props.getList("moveDeltaX");
-    std::vector<std::string> dy = m_props.getList("moveDeltaY");
-    if (!dx.empty() && !dy.empty()) {
-        int idx = m_props.getInt("moveIndex", -1);
-        if (idx >= 0 && idx < (int)dx.size() && idx < (int)dy.size()) {
-            setPos({m_orgPos.x + std::stof(dx[idx]), m_orgPos.y + std::stof(dy[idx])});
-        } else {
-            setPos(m_orgPos);
-        }
-    }
+	// 2. Check position offsets from mover (moveDeltaX / moveDeltaY)
+	std::vector<std::string> dx = props.getList("moveDeltaX");
+	std::vector<std::string> dy = props.getList("moveDeltaY");
+	if (!dx.empty() && !dy.empty())
+	{
+		i32 idx = props.getInt("moveIndex", -1);
+		if (idx >= 0 && idx < (i32)dx.size() && idx < (i32)dy.size())
+			setPos({ bounds.x + std::stof(dx[idx]), bounds.y + std::stof(dy[idx]) });
+		else
+			setPos(bounds.getPosition());
+	}
 }
 
-bool Actor::onTap(int numTaps) {
-    if (isHidden() || !m_location) return false;
-    World* world = m_location->getWorld();
-    if (!world) return false;
+bool Actor::onTap(i32 numTaps)
+{
+	bool retVal = false;
+	if (!isHidden() && pLocation)
+	{
+		observer_ptr<World> pWorld = pLocation->getWorld();
+		if (pWorld)
+		{
+			if (!retVal && props.has("relocaterDest"))
+			{ // 1. Relocater check (change location within current game)
+				bool canRelocate = true;
+				if (props.getBool("toggle", false))
+					canRelocate = props.getBool("toggled", false);
 
-    // 1. Relocater check (change location within current game)
-    if (m_props.has("relocaterDest")) {
-        bool canRelocate = true;
-        if (m_props.getBool("toggle", false)) {
-            canRelocate = m_props.getBool("toggled", false);
-        }
+				if (canRelocate)
+				{
+					std::string dest = props.get("relocaterDest");
+					float time = props.getFloat("relocaterDestTime", 0.75f);
+					std::string snd = props.get("soundRelocate");
+					if (!snd.empty())
+						AudioEngine::instance().playSfx(snd);
+					pWorld->changeLocation(dest, time);
+					retVal = true;
+				}
+			}
 
-        if (canRelocate) {
-            std::string dest = m_props.get("relocaterDest");
-            float time = m_props.getFloat("relocaterDestTime", 0.75f);
-            std::string snd = m_props.get("soundRelocate");
-            if (!snd.empty()) {
-                AudioEngine::instance().playSfx(snd);
-            }
-            world->changeLocation(dest, time);
-            return true;
-        }
-    }
+			if (!retVal)
+			{ // 2. Relocater Map check (switch to different game/map)
+				if (props.has("relocaterMap"))
+				{
+					std::string mapName = props.get("relocaterMap");
+					float time = props.getFloat("relocaterMapTime", 0.75f);
+					std::string snd = props.get("soundRelocateMap");
+					if (!snd.empty())
+						AudioEngine::instance().playSfx(snd);
+					pWorld->switchGame(mapName, time);
+					retVal = true;
+				}
+			}
 
-    // 2. Relocater Map check (switch to different game/map)
-    if (m_props.has("relocaterMap")) {
-        std::string mapName = m_props.get("relocaterMap");
-        float time = m_props.getFloat("relocaterMapTime", 0.75f);
-        std::string snd = m_props.get("soundRelocateMap");
-        if (!snd.empty()) {
-            AudioEngine::instance().playSfx(snd);
-        }
-        world->switchGame(mapName, time);
-        return true;
-    }
+			if (!retVal)
+			{ // 3. Revealer check
+				std::vector<std::string> reveals = getRevealActors();
+				std::vector<std::string> revealsSync = getRevealActorsSync();
+				if (!reveals.empty() || !revealsSync.empty())
+				{
+					std::string trigger = props.get("revealTrigger");
+					bool canReveal = trigger.empty() || props.getBool("revealTriggered", false);
 
-    // 3. Revealer check
-    std::vector<std::string> reveals = getRevealActors();
-    std::vector<std::string> revealsSync = getRevealActorsSync();
-    if (!reveals.empty() || !revealsSync.empty()) {
-        std::string trigger = m_props.get("revealTrigger");
-        bool canReveal = trigger.empty() || m_props.getBool("revealTriggered", false);
+					if (canReveal)
+					{
+						bool revealLoop = props.getBool("revealLoop", true);
+						bool changed = false;
 
-        if (canReveal) {
-            bool revealLoop = m_props.getBool("revealLoop", true);
-            bool changed = false;
+						if (!reveals.empty())
+						{ // Non-sync: reveals all listed actors
+							for (const auto& targetName : reveals)
+							{
+								std::string key = targetName + "Revealed";
+								bool cur = props.getBool(key, false);
+								if (!cur || revealLoop)
+								{
+									props.flipBool(key, false);
+									changed = true;
+								}
+							}
+						}
 
-            // Non-sync: reveals all listed actors
-            if (!reveals.empty()) {
-                for (const auto& targetName : reveals) {
-                    std::string key = targetName + "Revealed";
-                    bool cur = m_props.getBool(key, false);
-                    if (!cur || revealLoop) {
-                        m_props.flipBool(key, false);
-                        changed = true;
-                    }
-                }
-            }
+						// Sync reveals
+						if (!revealsSync.empty())
+						{
+							if (revealLoop)
+							{
+								bool stateFirst = props.getBool(revealsSync[0] + "Revealed", false);
+								for (uindex i = 1; i < revealsSync.size() && !changed; ++i)
+								{
+									const auto& targetName = revealsSync[i];
+									if (props.getBool(targetName + "Revealed", false) != stateFirst)
+									{
+										props.flipBool(targetName + "Revealed", false);
+										changed = true;
+									}
+								}
+								if (!changed)
+								{
+									props.flipBool(revealsSync[0] + "Revealed", false);
+									changed = true;
+								}
+							}
+							else
+							{
+								for (uindex i = 0; i < revealsSync.size() && !changed; ++i)
+								{
+									const auto& targetName = revealsSync[i];
+									if (!props.getBool(targetName + "Revealed", false))
+									{
+										props.setBool(targetName + "Revealed", true);
+										changed = true;
+									}
+								}
+							}
+						}
 
-            // Sync reveals
-            if (!revealsSync.empty()) {
-                if (revealLoop) {
-                    bool stateFirst = m_props.getBool(revealsSync[0] + "Revealed", false);
-                    for (size_t i = 1; i < revealsSync.size(); ++i) {
-                        const auto& targetName = revealsSync[i];
-                        if (m_props.getBool(targetName + "Revealed", false) != stateFirst) {
-                            m_props.flipBool(targetName + "Revealed", false);
-                            changed = true;
-                            break;
-                        }
-                    }
-                    if (!changed) {
-                        m_props.flipBool(revealsSync[0] + "Revealed", false);
-                        changed = true;
-                    }
-                } else {
-                    for (const auto& targetName : revealsSync) {
-                        if (!m_props.getBool(targetName + "Revealed", false)) {
-                            m_props.setBool(targetName + "Revealed", true);
-                            changed = true;
-                            break;
-                        }
-                    }
-                }
-            }
+						if (changed)
+						{
+							std::string snd = props.get("soundReveal");
+							if (!snd.empty())
+								AudioEngine::instance().playSfx(snd);
+							onPlace();
+							retVal = true;
+						}
+					}
+				}
+			}
 
-            if (changed) {
-                std::string snd = m_props.get("soundReveal");
-                if (!snd.empty()) AudioEngine::instance().playSfx(snd);
-                onPlace();
-                return true;
-            }
-        }
-    }
+			if (!retVal)
+			{ // 3. Mover check
+				std::vector<std::string> dx = props.getList("moveDeltaX");
+				std::vector<std::string> dy = props.getList("moveDeltaY");
+				if (!dx.empty() && !dy.empty())
+				{
+					i32 maxSteps = std::min((i32)dx.size(), (i32)dy.size());
+					i32 curIdx = props.getInt("moveIndex", -1) + 1;
+					if (curIdx >= maxSteps)
+						props.setInt("moveIndex", -1);
+					else
+						props.setInt("moveIndex", curIdx);
 
-    // 3. Mover check
-    std::vector<std::string> dx = m_props.getList("moveDeltaX");
-    std::vector<std::string> dy = m_props.getList("moveDeltaY");
-    if (!dx.empty() && !dy.empty()) {
-        int maxSteps = std::min((int)dx.size(), (int)dy.size());
-        int curIdx = m_props.getInt("moveIndex", -1) + 1;
-        if (curIdx >= maxSteps) {
-            m_props.setInt("moveIndex", -1);
-        } else {
-            m_props.setInt("moveIndex", curIdx);
-        }
+					std::string snd = props.get("soundMove");
+					if (!snd.empty())
+						AudioEngine::instance().playSfx(snd);
+					onPlace();
+					retVal = true;
+				}
+			}
 
-        std::string snd = m_props.get("soundMove");
-        if (!snd.empty()) AudioEngine::instance().playSfx(snd);
-        onPlace();
-        return true;
-    }
+			if (!retVal)
+			{ // 4. Toggle check
+				if (props.getBool("toggle", false))
+				{
+					bool canToggle = true;
+					if (props.has("toggleTrigger") && !props.getBool("toggleTriggered", false))
+						canToggle = false;
 
-    // 4. Toggle check
-    if (m_props.getBool("toggle", false)) {
-        bool canToggle = true;
-        if (m_props.has("toggleTrigger") && !m_props.getBool("toggleTriggered", false)) {
-            canToggle = false;
-        }
+					if (canToggle)
+					{
+						bool loop = props.getBool("toggleLoop", true);
+						if (!props.getBool("toggled", false) || loop)
+						{
+							props.flipBool("toggled", false);
+							std::string snd = props.get("soundToggle");
+							if (!snd.empty())
+								AudioEngine::instance().playSfx(snd);
+							onPlace();
+							retVal = true;
+						}
+					}
+				}
+			}
 
-        if (canToggle) {
-            bool loop = m_props.getBool("toggleLoop", true);
-            if (!m_props.getBool("toggled", false) || loop) {
-                m_props.flipBool("toggled", false);
-                std::string snd = m_props.get("soundToggle");
-                if (!snd.empty()) AudioEngine::instance().playSfx(snd);
-                onPlace();
-                return true;
-            }
-        }
-    }
+			if (!retVal)
+			{ // 5. Notes / Dialogue check
+				std::string noteSuffix = props.getBool("toggled", false) ? "Toggled" : "";
+				std::vector<std::string> notes = props.getList("note" + noteSuffix);
+				if (!notes.empty())
+				{
+					std::string snd = props.get("soundNote" + noteSuffix);
+					if (!snd.empty())
+						AudioEngine::instance().playSfx(snd);
+					pWorld->showNoteBubble(this, notes);
+					retVal = true;
+				}
+			}
 
-    // 5. Notes / Dialogue check
-    std::string noteSuffix = m_props.getBool("toggled", false) ? "Toggled" : "";
-    std::vector<std::string> notes = m_props.getList("note" + noteSuffix);
-    if (!notes.empty()) {
-        std::string snd = m_props.get("soundNote" + noteSuffix);
-        if (!snd.empty()) AudioEngine::instance().playSfx(snd);
-        world->showNoteBubble(this, notes);
-        return true;
-    }
+			if (!retVal)
+			{ // 6. Tap sound fallback
+				std::string tapSnd = props.get("soundTap");
+				if (!retVal && !tapSnd.empty())
+					AudioEngine::instance().playSfx(tapSnd);
+			}
+		}
+	}
 
-    // Tap sound fallback
-    std::string tapSnd = m_props.get("soundTap");
-    if (!tapSnd.empty()) {
-        AudioEngine::instance().playSfx(tapSnd);
-    }
-
-    return false;
+	return retVal;
 }
 
-bool Actor::onDrop(Actor* droppedActor) {
-    if (!droppedActor || droppedActor == this || !m_location) return false;
+bool Actor::onDrop(observer_ptr<Actor> pDroppedActor)
+{
+	bool retVal = false;
+	if (pDroppedActor && (pDroppedActor != this) && pLocation)
+	{
+		std::string trigger = props.get("revealTrigger");
+		if (!trigger.empty() && pDroppedActor->getName() == trigger)
+		{
+			props.setBool("revealTriggered", true);
+			if (!props.getBool("revealTriggerKeep", false))
+				pDroppedActor->setHidden(true);
+			onTap(1);
+			retVal = true;
+		}
 
-    std::string trigger = m_props.get("revealTrigger");
-    if (!trigger.empty() && droppedActor->getName() == trigger) {
-        m_props.setBool("revealTriggered", true);
-        if (!m_props.getBool("revealTriggerKeep", false)) {
-            droppedActor->setHidden(true);
-        }
-        onTap(1);
-        return true;
-    }
-
-    std::vector<std::string> toggleTriggers = m_props.getList("toggleTrigger");
-    for (const auto& trig : toggleTriggers) {
-        if (droppedActor->getName() == trig) {
-            m_props.setBool("toggleTriggered", true);
-            if (!m_props.getBool("toggleTriggerKeep", false)) {
-                droppedActor->setHidden(true);
-            }
-            onTap(1);
-            return true;
-        }
-    }
-
-    return false;
+		if (!retVal)
+		{ // Toggle trigger check
+			std::vector<std::string> toggleTriggers = props.getList("toggleTrigger");
+			for (uindex i = 0; i < toggleTriggers.size(); ++i)
+			{
+				const auto& trig = toggleTriggers[i];
+				if (pDroppedActor->getName() == trig)
+				{
+					props.setBool("toggleTriggered", true);
+					if (!props.getBool("toggleTriggerKeep", false))
+						pDroppedActor->setHidden(true);
+					onTap(1);
+					retVal = true;
+				}
+			}
+		}
+	}
+	return retVal;
 }
 
-void Actor::render(SDL_Renderer* renderer, float alpha) {
-    if (isHidden()) return;
-
-    Rect bounds = getBounds();
-    if (isDrawBackground()) {
-        GlyphCache::instance().renderBlankBackground(bounds, alpha);
-    }
-
-    GlyphCache::instance().renderGlyph(
-        getActiveGlyph(),
-        bounds,
-        getRotation(),
-        getFlipHoriz(),
-        getFlipVert(),
-        alpha
-    );
+void Actor::render(SDL_Renderer* pRenderer, f32 alpha)
+{
+	if (!isHidden())
+	{
+		Rectangle bounds = getBounds();
+		if (isDrawBackground())
+			GlyphCache::instance().renderBlankBackground(bounds, alpha);
+		GlyphCache::instance().renderGlyph(getActiveGlyph(), bounds, getRotation(), getFlipHoriz(), getFlipVert(), alpha);
+	}
 }

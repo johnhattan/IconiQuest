@@ -5,64 +5,60 @@
 class Location;
 class World;
 
-class Actor {
-public:
-    Actor(
-        const std::string& name,
-        Location* location,
-        float x = 0.0f,
-        float y = 0.0f,
-        float width = 48.0f,
-        float height = 48.0f
-    );
-    virtual ~Actor() = default;
+struct Actor
+{
+	std::string name;
+	observer_ptr<Location> pLocation;
+	PropertyDictionary props;
+	f32Rectangle bounds;
 
-    std::string getName() const { return m_name; }
-    void setName(const std::string& name) { m_name = name; }
+	Actor(const std::string& rName, observer_ptr<Location> pLocation, const f32Point& rPos, const f32Size& rSize);
+	Actor(const std::string& rName, observer_ptr<Location> pLocation, const f32Point& rPos) : Actor(rName, pLocation, rPos, f32Size(48.0f, 48.0f)) {}
+	Actor(const std::string& rName, observer_ptr<Location> pLocation) : Actor(rName, pLocation, f32Point(0.0f, 0.0f), f32Size(48.0f, 48.0f)) {}
 
-    Location* getLocation() const { return m_location; }
-    void setLocation(Location* loc) { m_location = loc; }
+	virtual ~Actor() = default;
 
-    PropertyDictionary& props() { return m_props; }
-    const PropertyDictionary& props() const { return m_props; }
+	std::string getName() const { return name; }
+	void setName(const std::string& rName) { name = rName; }
 
-    f32Point getPos() const;
-    void setPos(const f32Point& pos);
-    f32Point getOrgPos() const { return m_orgPos; }
+	observer_ptr<Location> getLocation() const { return pLocation; }
+	void setLocation(observer_ptr<Location> pLoc) { pLocation = pLoc; }
 
-    float getWidth() const { return m_width; }
-    float getHeight() const { return m_height; }
-    void setSize(float w, float h) { m_width = w; m_height = h; }
+	PropertyDictionary& getProps() { return props; }
+	const PropertyDictionary& getProps() const { return props; }
 
-    f32Rect getBounds() const;
-    bool isHidden() const;
-    void setHidden(bool hidden);
+	f32Point getPos() const;
+	void setPos(const f32Point& rPos);
+	f32Point getOrgPos() const { return bounds.getPosition(); }
 
-    bool isDraggable() const;
-    bool isDrawBackground() const;
-    std::string getActiveGlyph() const;
+	f32 getWidth() const { return bounds.w; }
+	f32 getHeight() const { return bounds.h; }
+	void setSize(f32 w, f32 h)
+	{
+		bounds.w = w;
+		bounds.h = h;
+	}
 
-    std::vector<std::string> getRevealActors() const;
-    std::vector<std::string> getRevealActorsSync() const;
-    std::vector<std::string> getAllRevealTargets() const;
-    bool isRevealer() const;
+	f32Rectangle getBounds() const;
+	bool isHidden() const;
+	void setHidden(bool hidden);
 
-    float getRotation() const;
-    bool getFlipHoriz() const;
-    bool getFlipVert() const;
+	bool isDraggable() const;
+	bool isDrawBackground() const;
+	std::string getActiveGlyph() const;
 
-    virtual void onPlace();
-    virtual bool onTap(int numTaps = 1);
-    virtual bool onDrop(Actor* droppedActor);
+	std::vector<std::string> getRevealActors() const;
+	std::vector<std::string> getRevealActorsSync() const;
+	std::vector<std::string> getAllRevealTargets() const;
+	bool isRevealer() const;
 
-    void render(SDL_Renderer* renderer, float alpha = 1.0f);
+	f32 getRotation() const;
+	bool getFlipHoriz() const;
+	bool getFlipVert() const;
 
-protected:
-    std::string m_name;
-    Location* m_location = nullptr;
-    PropertyDictionary m_props;
+	virtual void onPlace();
+	virtual bool onTap(i32 numTaps = 1);
+	virtual bool onDrop(observer_ptr<Actor> pDroppedActor);
 
-    f32Point m_orgPos;
-    float m_width = 48.0f;
-    float m_height = 48.0f;
+	void render(SDL_Renderer* pRenderer, f32 alpha = 1.0f);
 };

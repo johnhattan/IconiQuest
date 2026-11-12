@@ -2,110 +2,120 @@
 
 #include "pch.hpp"
 
-class Camera {
-public:
-    Camera(float viewportW = 800.0f, float viewportH = 600.0f)
-        : m_viewW(viewportW), m_viewH(viewportH) {}
+struct Camera
+{
+	Camera(f32 viewportW = 800.0f, f32 viewportH = 600.0f) :
+	    _viewport(viewportW, viewportH)
+	{
+	}
 
-    void setViewportSize(float w, float h) {
-        m_viewW = w;
-        m_viewH = h;
-    }
+	void setViewportSize(const f32Size& rSize)
+	{
+		_viewport.width = rSize.width;
+		_viewport.height = rSize.height;
+	}
 
-    float getViewportWidth() const { return m_viewW; }
-    float getViewportHeight() const { return m_viewH; }
+	f32 getViewportWidth() const { return _viewport.width; }
+	f32 getViewportHeight() const { return _viewport.height; }
 
-    void frameRect(const f32Rect& target, float duration = 0.75f) {
-        if (target.w <= 0.0f || target.h <= 0.0f) return;
+	void frameRect(const f32Rectangle& rTarget, f32 duration = 0.75f)
+	{
+		if (rTarget.w > 0.0f && rTarget.h > 0.0f)
+		{
+			_startPos = _curPos;
+			_startScale = _curScale;
 
-        m_startPos = {m_curX, m_curY};
-        m_startScale = m_curScale;
+			// Scale to fit 90% of screen with margins
+			f32 scaleX = (_viewport.width * 0.90f) / rTarget.w;
+			f32 scaleY = (_viewport.height * 0.90f) / rTarget.h;
+			_targetScale = std::min(scaleX, scaleY);
+			_targetPos = rTarget.center();
 
-        // Scale to fit 90% of screen with margins
-        float scaleX = (m_viewW * 0.90f) / target.w;
-        float scaleY = (m_viewH * 0.90f) / target.h;
-        m_targetScale = std::min(scaleX, scaleY);
-        m_targetPos = target.center();
+			if (duration <= 0.0f)
+			{
+				instantFrame(rTarget);
+			}
+			else
+			{
+				_duration = duration;
+				_timer = 0.0f;
+				_isTransitioning = true;
+			}
+		}
+	}
 
-        if (duration <= 0.0f) {
-            instantFrame(target);
-        } else {
-            m_duration = duration;
-            m_timer = 0.0f;
-            m_isTransitioning = true;
-        }
-    }
+	void instantFrame(const f32Rectangle& rTarget)
+	{
+		if (rTarget.w > 0.0f && rTarget.h > 0.0f)
+		{
+			f32 scaleX = (_viewport.width * 0.90f) / rTarget.w;
+			f32 scaleY = (_viewport.height * 0.90f) / rTarget.h;
+			_curScale = _targetScale = std::min(scaleX, scaleY);
+			f32Point c = rTarget.center();
+			_curPos = _targetPos = c;
+			_isTransitioning = false;
+		}
+	}
 
-    void instantFrame(const f32Rect& target) {
-        if (target.w <= 0.0f || target.h <= 0.0f) return;
-        float scaleX = (m_viewW * 0.90f) / target.w;
-        float scaleY = (m_viewH * 0.90f) / target.h;
-        m_curScale = m_targetScale = std::min(scaleX, scaleY);
-        f32Point c = target.center();
-        m_curX = m_targetPos.x = c.x;
-        m_curY = m_targetPos.y = c.y;
-        m_isTransitioning = false;
-    }
+	void update(f32 dt)
+	{
+		if (_isTransitioning)
+		{
+			_timer += dt;
+			f32 t = std::min(1.0f, _timer / _duration);
 
-    void update(float dt) {
-        if (!m_isTransitioning) return;
+			// Smooth cubic ease out
+			f32 ease = 1.0f - std::pow(1.0f - t, 3.0f);
 
-        m_timer += dt;
-        float t = std::min(1.0f, m_timer / m_duration);
+			_curPos.x = _startPos.x + (_targetPos.x - _startPos.x) * ease;
+			_curPos.y = _startPos.y + (_targetPos.y - _startPos.y) * ease;
+			_curScale = _startScale + (_targetScale - _startScale) * ease;
 
-        // Smooth cubic ease out
-        float ease = 1.0f - std::pow(1.0f - t, 3.0f);
+			if (t >= 1.0f)
+			{
+				_curPos = _targetPos;
+				_curScale = _targetScale;
+				_isTransitioning = false;
+			}
+		}
+	}
 
-        m_curX = m_startPos.x + (m_targetPos.x - m_startPos.x) * ease;
-        m_curY = m_startPos.y + (m_targetPos.y - m_startPos.y) * ease;
-        m_curScale = m_startScale + (m_targetScale - m_startScale) * ease;
+	f32Point worldToScreen(const f32Point& rWorldPt) const
+	{
+		return {
+			(rWorldPt.x - _curPos.x) * _curScale + _viewport.width * 0.5f,
+			(rWorldPt.y - _curPos.y) * _curScale + _viewport.height * 0.5f
+		};
+	}
 
-        if (t >= 1.0f) {
-            m_curX = m_targetPos.x;
-            m_curY = m_targetPos.y;
-            m_curScale = m_targetScale;
-            m_isTransitioning = false;
-        }
-    }
+	f32Point screenToWorld(const f32Point& rScreenPt) const
+	{
+		return { (rScreenPt.x - _viewport.width * 0.5f) / _curScale + _curPos.x, (rScreenPt.y - _viewport.height * 0.5f) / _curScale + _curPos.y };
+	}
 
-    f32Point worldToScreen(const f32Point& worldPt) const {
-        return {
-            (worldPt.x - m_curX) * m_curScale + m_viewW * 0.5f,
-            (worldPt.y - m_curY) * m_curScale + m_viewH * 0.5f
-        };
-    }
+	f32Rectangle worldToScreenRect(const f32Rectangle& rRect) const
+	{
+		f32Point tl = worldToScreen({ rRect.x, rRect.y });
+		return { tl.x, tl.y, rRect.w * _curScale, rRect.h * _curScale };
+	}
 
-    f32Point screenToWorld(const f32Point& screenPt) const {
-        return {
-            (screenPt.x - m_viewW * 0.5f) / m_curScale + m_curX,
-            (screenPt.y - m_viewH * 0.5f) / m_curScale + m_curY
-        };
-    }
-
-    f32Rect worldToScreenRect(const f32Rect& r) const {
-        f32Point tl = worldToScreen({r.x, r.y});
-        return {tl.x, tl.y, r.w * m_curScale, r.h * m_curScale};
-    }
-
-    float getScale() const { return m_curScale; }
-    f32Point getCenter() const { return {m_curX, m_curY}; }
-    bool isTransitioning() const { return m_isTransitioning; }
+	f32 getScale() const { return _curScale; }
+	f32Point getCenter() const { return _curPos; }
+	bool isTransitioning() const { return _isTransitioning; }
 
 private:
-    float m_viewW = 800.0f;
-    float m_viewH = 600.0f;
+	f32Size _viewport = { 800.0f, 600.0f };
 
-    float m_curX = 0.0f;
-    float m_curY = 0.0f;
-    float m_curScale = 1.0f;
+	f32Point _curPos;
+	f32 _curScale = 1.0f;
 
-    f32Point m_startPos;
-    float m_startScale = 1.0f;
+	f32Point _startPos;
+	f32 _startScale = 1.0f;
 
-    f32Point m_targetPos;
-    float m_targetScale = 1.0f;
+	f32Point _targetPos;
+	f32 _targetScale = 1.0f;
 
-    float m_timer = 0.0f;
-    float m_duration = 0.75f;
-    bool m_isTransitioning = false;
+	f32 _timer = 0.0f;
+	f32 _duration = 0.75f;
+	bool _isTransitioning = false;
 };

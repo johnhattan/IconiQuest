@@ -1,10 +1,10 @@
 #pragma once
 
-#include "pch.hpp"
 #include "World.hpp"
+#include "pch.hpp"
 
-class TmxLoader {
-public:
-    static bool loadWorld(World& world, const std::string& tmxPath);
-    static bool saveWorld(const World& world, const std::string& tmxPath);
+struct TmxLoader
+{
+	static bool loadWorld(World& rWorld, const std::string& rTmxPath);
+	static bool saveWorld(const World& rWorld, const std::string& rTmxPath);
 };

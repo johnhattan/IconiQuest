@@ -1,98 +1,145 @@
-#include "pch.hpp"
 #include "Location.hpp"
 #include "Actor.hpp"
 #include "World.hpp"
+#include "pch.hpp"
 
-Location::Location(const std::string& name, World* world)
-    : m_name(name), m_world(world) {}
+Location::Location(const std::string& rName, observer_ptr<World> pWorld) :
+    name(rName), pWorld(pWorld)
+{
+}
 
 Location::~Location() = default;
 
-void Location::addActor(std::unique_ptr<Actor> actor) {
-    if (actor) {
-        actor->setLocation(this);
-        m_actors.push_back(std::move(actor));
-    }
+void Location::addActor(std::unique_ptr<Actor> pActor)
+{
+	if (pActor)
+	{
+		pActor->setLocation(this);
+		actors.push_back(std::move(pActor));
+	}
 }
 
-Actor* Location::findActor(const std::string& name) const {
-    if (name.empty()) return nullptr;
+observer_ptr<Actor> Location::findActor(const std::string& rName) const
+{
+	observer_ptr<Actor> retVal;
+	bool nameEmpty = rName.empty();
 
-    for (const auto& a : m_actors) {
-        if (a && a->getName() == name) {
-            return a.get();
-        }
-    }
+	if (!nameEmpty)
+	{
+		// Try exact match first
+		for (const auto& pActor : actors)
+		{
+			if (pActor && pActor->getName() == rName)
+			{
+				retVal = pActor.get();
+			}
+		}
 
-    // Case-insensitive fallback
-    for (const auto& a : m_actors) {
-        if (a) {
-            const std::string& aname = a->getName();
-            if (aname.size() == name.size() &&
-                std::equal(aname.begin(), aname.end(), name.begin(), [](char c1, char c2) {
-                    return std::tolower((unsigned char)c1) == std::tolower((unsigned char)c2);
-                })) {
-                return a.get();
-            }
-        }
-    }
+		// Case-insensitive fallback if no exact match
+		if (!retVal)
+		{
+			for (const auto& pActor : actors)
+			{
+				if (pActor)
+				{
+					const std::string& rActorName = pActor->getName();
+					bool sizeMatch = rActorName.size() == rName.size();
+					bool caseInsensitiveMatch = sizeMatch && std::equal(rActorName.begin(), rActorName.end(), rName.begin(), 
+						[](char c1, char c2) {
+							return std::tolower((unsigned char)c1) == std::tolower((unsigned char)c2);
+						});
+					
+					if (caseInsensitiveMatch)
+					{
+						retVal = pActor.get();
+					}
+				}
+			}
+		}
+	}
 
-    return nullptr;
+	return retVal;
 }
 
-std::unique_ptr<Actor> Location::removeActor(Actor* target) {
-    auto it = std::find_if(m_actors.begin(), m_actors.end(),
-        [target](const std::unique_ptr<Actor>& a) { return a.get() == target; });
+std::unique_ptr<Actor> Location::removeActor(observer_ptr<Actor> pTarget)
+{
+	auto it = std::find_if(actors.begin(), actors.end(),
+	    [pTarget](const std::unique_ptr<Actor>& pActor) { return pActor.get() == pTarget.get(); });
 
-    if (it != m_actors.end()) {
-        std::unique_ptr<Actor> taken = std::move(*it);
-        m_actors.erase(it);
-        taken->setLocation(nullptr);
-        return taken;
-    }
-    return nullptr;
+	std::unique_ptr<Actor> taken;
+	bool found = it != actors.end();
+	if (found)
+	{
+		taken = std::move(*it);
+		actors.erase(it);
+		taken->setLocation(nullptr);
+	}
+
+	return taken;
 }
 
-void Location::takeActor(Actor* actor) {
-    if (!actor) return;
-    Location* oldLoc = actor->getLocation();
-    if (oldLoc == this) return;
-
-    if (oldLoc) {
-        std::unique_ptr<Actor> ptr = oldLoc->removeActor(actor);
-        if (ptr) {
-            addActor(std::move(ptr));
-        }
-    }
+void Location::takeActor(observer_ptr<Actor> pActor)
+{
+	if (pActor)
+	{
+		observer_ptr<Location> pOldLoc = pActor->getLocation();
+		bool differentLocation = pOldLoc != this;
+		if (differentLocation)
+		{
+			if (pOldLoc)
+			{
+				std::unique_ptr<Actor> pPtr = pOldLoc->removeActor(pActor);
+				if (pPtr)
+				{
+					addActor(std::move(pPtr));
+				}
+			}
+		}
+	}
 }
 
-Color Location::getBackgroundColor() const {
-    std::string hex = m_props.get("colorBackground");
-    if (!hex.empty()) {
-        return Color::fromHex(hex, {15, 15, 20, 255});
-    }
-    return {15, 15, 20, 255};
+Color Location::getBackgroundColor() const
+{
+	std::string rHex = props.get("colorBackground");
+	Color retVal = { 15, 15, 20, 255 };
+	
+	if (!rHex.empty())
+	{
+		retVal = Color::fromHex(rHex, { 15, 15, 20, 255 });
+	}
+
+	return retVal;
 }
 
-void Location::revert() {
-    m_props.revert();
-    // Two-pass revert so resetting one actor's deltas does not wipe another's onPlace state
-    for (auto& a : m_actors) {
-        if (a) {
-            a->props().revert();
-        }
-    }
-    for (auto& a : m_actors) {
-        if (a) {
-            a->onPlace();
-        }
-    }
+void Location::revert()
+{
+	props.revert();
+	
+	// Two-pass revert so resetting one actor's deltas does not wipe another's onPlace state
+	for (auto& pActor : actors)
+	{
+		if (pActor)
+		{
+			pActor->props.revert();
+		}
+	}
+	
+	for (auto& pActor : actors)
+	{
+		if (pActor)
+		{
+			pActor->onPlace();
+		}
+	}
 }
 
-void Location::render(SDL_Renderer* renderer, float alpha) {
-    for (auto& a : m_actors) {
-        if (a) {
-            a->render(renderer, alpha);
-        }
-    }
+void Location::render(SDL_Renderer* pRenderer, f32 alpha)
+{
+	for (auto& pActor : actors)
+	{
+		if (pActor)
+		{
+			pActor->render(pRenderer, alpha);
+		}
+	}
 }

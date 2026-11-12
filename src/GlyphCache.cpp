@@ -1,172 +1,239 @@
-#include "pch.hpp"
 #include "GlyphCache.hpp"
+#include "pch.hpp"
 
-GlyphCache& GlyphCache::instance() {
-    static GlyphCache inst;
-    return inst;
+GlyphCache& GlyphCache::instance()
+{
+	static GlyphCache inst;
+	return inst;
 }
 
-GlyphCache::~GlyphCache() {
-    shutdown();
+GlyphCache::~GlyphCache()
+{
+	shutdown();
 }
 
-bool GlyphCache::init(SDL_Renderer* renderer, const std::string& imagesDir) {
-    m_renderer = renderer;
-    m_imagesDir = imagesDir;
-    return true;
+bool GlyphCache::init(SDL_Renderer* pRenderer, const std::string& rImagesDir)
+{
+	_pRenderer = observer_ptr<SDL_Renderer>(pRenderer);
+	_imagesDir = rImagesDir;
+	return true;
 }
 
-void GlyphCache::shutdown() {
-    clear();
-    m_renderer = nullptr;
+void GlyphCache::shutdown()
+{
+	clear();
+	_pRenderer = nullptr;
 }
 
-void GlyphCache::clear() {
-    for (auto& [name, tex] : m_textures) {
-        if (tex) {
-            SDL_DestroyTexture(tex);
-        }
-    }
-    m_textures.clear();
+void GlyphCache::clear()
+{
+	for (auto& [name, pTex] : _textures)
+	{
+		if (pTex)
+		{
+			SDL_DestroyTexture(pTex.get());
+		}
+	}
+	_textures.clear();
 }
 
-void GlyphCache::setImagesDir(const std::string& dir) {
-	if (m_imagesDir != dir) {
+void GlyphCache::setImagesDir(const std::string& rDir)
+{
+	bool dirChanged = _imagesDir != rDir;
+	if (dirChanged)
+	{
 		clear();
-		m_imagesDir = dir;
+		_imagesDir = rDir;
 	}
 }
 
-void GlyphCache::setGameAssetsRoot(const std::string& root) {
-	m_gameAssetsRoot = root;
+void GlyphCache::setGameAssetsRoot(const std::string& rRoot)
+{
+	_gameAssetsRoot = rRoot;
 }
 
-void GlyphCache::setCurrentGame(const std::string& game) {
-	m_currentGame = game;
-	// Clear texture cache when switching games since asset paths may have changed
+void GlyphCache::setCurrentGame(const std::string& rGame)
+{
+	_currentGame = rGame;
 	clear();
 }
 
-std::string GlyphCache::resolvePath(const std::string& glyphName) {
-	if (glyphName.empty()) return "";
+std::string GlyphCache::resolvePath(const std::string& rGlyphName)
+{
+	std::string retVal;
 
-	std::vector<std::string> exts = {".svg", ".png"};
-	
-	// First priority: try the game-specific images folder (if not using _default)
-	if (!m_gameAssetsRoot.empty() && !m_currentGame.empty() && m_currentGame != "_default") {
-		for (const auto& ext : exts) {
-			std::filesystem::path p = std::filesystem::path(m_gameAssetsRoot) / m_currentGame / "images" / (glyphName + ext);
-			if (std::filesystem::exists(p)) {
-				return p.string();
+	if (!rGlyphName.empty())
+	{
+		std::vector<std::string> exts = { ".svg", ".png" };
+
+		// First priority: try the game-specific images folder (if not using _default)
+		bool tryGameSpecific = !_gameAssetsRoot.empty() && !_currentGame.empty() && _currentGame != "_default";
+		if (tryGameSpecific)
+		{
+			for (const auto& ext : exts)
+			{
+				std::filesystem::path p = std::filesystem::path(_gameAssetsRoot) / _currentGame / "images" / (rGlyphName + ext);
+				if (std::filesystem::exists(p))
+				{
+					retVal = p.string();
+				}
+			}
+		}
+
+		if (retVal.empty())
+		{
+			// Second priority: fall back to default images dir
+			for (const auto& ext : exts)
+			{
+				std::filesystem::path p = std::filesystem::path(_imagesDir) / (rGlyphName + ext);
+				if (std::filesystem::exists(p))
+				{
+					retVal = p.string();
+				}
+			}
+		}
+
+		if (retVal.empty())
+		{
+			// Third priority: try direct file (no extension)
+			std::filesystem::path direct = std::filesystem::path(_imagesDir) / rGlyphName;
+			if (std::filesystem::exists(direct))
+			{
+				retVal = direct.string();
 			}
 		}
 	}
 
-	// Second priority: fall back to default images dir
-	for (const auto& ext : exts) {
-		std::filesystem::path p = std::filesystem::path(m_imagesDir) / (glyphName + ext);
-		if (std::filesystem::exists(p)) {
-			return p.string();
+	return retVal;
+}
+
+observer_ptr<SDL_Texture> GlyphCache::getTexture(const std::string& rGlyphName)
+{
+	observer_ptr<SDL_Texture> retVal;
+
+	bool canLoad = _pRenderer && !rGlyphName.empty();
+	if (canLoad)
+	{
+		auto it = _textures.find(rGlyphName);
+		bool found = it != _textures.end();
+		if (found)
+		{
+			retVal = it->second;
+		}
+		else
+		{
+			std::string path = resolvePath(rGlyphName);
+			bool pathFound = !path.empty();
+			if (!pathFound)
+			{
+				_textures[rGlyphName] = nullptr;
+			}
+			else
+			{
+				observer_ptr<SDL_Surface> pSurface(IMG_Load(path.c_str()));
+				if (!pSurface)
+				{
+					std::cerr << "[GlyphCache] Failed to load " << path << ": " << SDL_GetError() << std::endl;
+					_textures[rGlyphName] = nullptr;
+				}
+				else
+				{
+					observer_ptr<SDL_Texture> pTex(SDL_CreateTextureFromSurface(_pRenderer.get(), pSurface.get()));
+					SDL_DestroySurface(pSurface.get());
+
+					if (!pTex)
+					{
+						std::cerr << "[GlyphCache] Failed to create texture for " << path << ": " << SDL_GetError() << std::endl;
+					}
+
+					_textures[rGlyphName] = pTex;
+					retVal = pTex;
+				}
+			}
 		}
 	}
 
-	// Third priority: try direct file (no extension)
-	std::filesystem::path direct = std::filesystem::path(m_imagesDir) / glyphName;
-	if (std::filesystem::exists(direct)) {
-		return direct.string();
+	return retVal;
+}
+
+std::vector<std::string> GlyphCache::getAllGlyphs()
+{
+	std::vector<std::string> results;
+
+	if (std::filesystem::exists(_imagesDir))
+	{
+		for (const auto& entry : std::filesystem::directory_iterator(_imagesDir))
+		{
+			if (entry.is_regular_file())
+			{
+				std::string ext = entry.path().extension().string();
+				bool isSvgOrPng = ext == ".svg" || ext == ".png";
+				if (isSvgOrPng)
+				{
+					results.push_back(entry.path().stem().string());
+				}
+			}
+		}
+		std::sort(results.begin(), results.end());
 	}
 
-	return "";
+	return results;
 }
 
-SDL_Texture* GlyphCache::getTexture(const std::string& glyphName) {
-    if (!m_renderer || glyphName.empty()) return nullptr;
-
-    auto it = m_textures.find(glyphName);
-    if (it != m_textures.end()) {
-        return it->second;
-    }
-
-    std::string path = resolvePath(glyphName);
-    if (path.empty()) {
-        m_textures[glyphName] = nullptr;
-        return nullptr;
-    }
-
-    SDL_Surface* surface = IMG_Load(path.c_str());
-    if (!surface) {
-        std::cerr << "[GlyphCache] Failed to load " << path << ": " << SDL_GetError() << std::endl;
-        m_textures[glyphName] = nullptr;
-        return nullptr;
-    }
-
-    SDL_Texture* tex = SDL_CreateTextureFromSurface(m_renderer, surface);
-    SDL_DestroySurface(surface);
-
-    if (!tex) {
-        std::cerr << "[GlyphCache] Failed to create texture for " << path << ": " << SDL_GetError() << std::endl;
-    }
-
-    m_textures[glyphName] = tex;
-    return tex;
+void GlyphCache::renderBlankBackground(const f32Rectangle& rDst, f32 alpha)
+{
+	observer_ptr<SDL_Texture> pTex = getTexture("_blank");
+	if (pTex)
+	{
+		SDL_SetTextureAlphaModFloat(pTex.get(), alpha);
+		SDL_FRect fdst = { rDst.x, rDst.y, rDst.w, rDst.h };
+		SDL_RenderTexture(_pRenderer.get(), pTex.get(), NULL, &fdst);
+	}
+	else
+	{
+		SDL_SetRenderDrawColor(_pRenderer.get(), 180, 180, 180, (Uint8)(alpha * 200.0f));
+		SDL_FRect fdst = { rDst.x, rDst.y, rDst.w, rDst.h };
+		SDL_RenderFillRect(_pRenderer.get(), &fdst);
+	}
 }
 
-std::vector<std::string> GlyphCache::getAllGlyphs() {
-    std::vector<std::string> results;
-    if (!std::filesystem::exists(m_imagesDir)) return results;
+void GlyphCache::renderGlyph(const std::string& rGlyphName, const f32Rectangle& rDst, f32 rotation, bool flipH, bool flipV, f32 alpha)
+{
+	bool canRender = !rGlyphName.empty() && rGlyphName != "blank" && rGlyphName != "_blank_ignore";
+	if (canRender)
+	{
+		observer_ptr<SDL_Texture> pTex = getTexture(rGlyphName);
+		if (pTex)
+		{
+			SDL_SetTextureAlphaModFloat(pTex.get(), alpha);
 
-    for (const auto& entry : std::filesystem::directory_iterator(m_imagesDir)) {
-        if (entry.is_regular_file()) {
-            std::string ext = entry.path().extension().string();
-            if (ext == ".svg" || ext == ".png") {
-                results.push_back(entry.path().stem().string());
-            }
-        }
-    }
-    std::sort(results.begin(), results.end());
-    return results;
-}
+			SDL_FRect fdst = { rDst.x, rDst.y, rDst.w, rDst.h };
+			SDL_FlipMode flip = SDL_FLIP_NONE;
+			bool flipBoth = flipH && flipV;
+			bool flipHOnly = flipH && !flipV;
+			bool flipVOnly = flipV && !flipH;
+			if (flipBoth)
+			{
+				flip = SDL_FLIP_HORIZONTAL_AND_VERTICAL;
+			}
+			else if (flipHOnly)
+			{
+				flip = SDL_FLIP_HORIZONTAL;
+			}
+			else if (flipVOnly)
+			{
+				flip = SDL_FLIP_VERTICAL;
+			}
 
-void GlyphCache::renderBlankBackground(const f32Rect& dst, float alpha) {
-    SDL_Texture* tex = getTexture("_blank");
-    if (tex) {
-        SDL_SetTextureAlphaModFloat(tex, alpha);
-        SDL_FRect fdst = {dst.x, dst.y, dst.w, dst.h};
-        SDL_RenderTexture(m_renderer, tex, NULL, &fdst);
-    } else {
-        // Fallback: draw circular outline/fill
-        SDL_SetRenderDrawColor(m_renderer, 180, 180, 180, (Uint8)(alpha * 200.0f));
-        SDL_FRect fdst = {dst.x, dst.y, dst.w, dst.h};
-        SDL_RenderFillRect(m_renderer, &fdst);
-    }
-}
-
-void GlyphCache::renderGlyph(
-    const std::string& glyphName,
-    const f32Rect& dst,
-    float rotation,
-    bool flipH,
-    bool flipV,
-    float alpha
-) {
-    if (glyphName.empty() || glyphName == "blank" || glyphName == "_blank_ignore") {
-        return;
-    }
-
-    SDL_Texture* tex = getTexture(glyphName);
-    if (!tex) return;
-
-    SDL_SetTextureAlphaModFloat(tex, alpha);
-
-    SDL_FRect fdst = {dst.x, dst.y, dst.w, dst.h};
-    SDL_FlipMode flip = SDL_FLIP_NONE;
-    if (flipH && flipV) flip = SDL_FLIP_HORIZONTAL_AND_VERTICAL;
-    else if (flipH) flip = SDL_FLIP_HORIZONTAL;
-    else if (flipV) flip = SDL_FLIP_VERTICAL;
-
-    if (rotation != 0.0f || flip != SDL_FLIP_NONE) {
-        SDL_RenderTextureRotated(m_renderer, tex, NULL, &fdst, (double)rotation, NULL, flip);
-    } else {
-        SDL_RenderTexture(m_renderer, tex, NULL, &fdst);
-    }
+			bool hasTransform = rotation != 0.0f || flip != SDL_FLIP_NONE;
+			if (hasTransform)
+			{
+				SDL_RenderTextureRotated(_pRenderer.get(), pTex.get(), NULL, &fdst, (double)rotation, NULL, flip);
+			}
+			else
+			{
+				SDL_RenderTexture(_pRenderer.get(), pTex.get(), NULL, &fdst);
+			}
+		}
+	}
 }

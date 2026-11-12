@@ -7,8 +7,8 @@
 // - Aggregate low-level third-party headers (SDL3, pugixml) in one place.
 //
 // Public API:
-// - Common aliases (u8/i32/f32, Point/Rect families).
-// - Convenience helpers for Point/Rect operations and direction utilities.
+// - Common aliases (u8/i32/f32, Point/Rectangle families).
+// - Convenience helpers for Point/Rectangle operations and direction utilities.
 
 #include <algorithm>
 #include <array>
@@ -121,93 +121,93 @@ private:
 	T* _pointee = nullptr;
 };
 
-template <typename T> struct Point
+template <typename T, typename Derived> struct _pair2D
+{ // Base class for 2D pair types (e.g., Point, Size)
+	_pair2D() = default;
+	_pair2D(T first, T second) {}
+
+	_pair2D(const _pair2D&) = default;
+	_pair2D& operator=(const _pair2D&) = default;
+	_pair2D(_pair2D&&) = default;
+	_pair2D& operator=(_pair2D&&) = default;
+
+	// Helper methods to access first/second via derived class
+	T& first() { return static_cast<Derived&>(*this).first_impl(); }
+	const T& first() const { return static_cast<const Derived&>(*this).first_impl(); }
+	T& second() { return static_cast<Derived&>(*this).second_impl(); }
+	const T& second() const { return static_cast<const Derived&>(*this).second_impl(); }
+
+	auto operator<=>(const _pair2D& other) const = default;
+	bool operator==(const _pair2D& other) const = default;
+
+	Derived operator+(const _pair2D& other) const { return Derived(first() + other.first(), second() + other.second()); }
+	Derived operator-(const _pair2D& other) const { return Derived(first() - other.first(), second() - other.second()); }
+	Derived operator*(T scalar) const { return Derived(first() * scalar, second() * scalar); }
+	Derived operator/(T scalar) const { return Derived(first() / scalar, second() / scalar); }
+
+	Derived& operator+=(const _pair2D& other)
+	{
+		first() += other.first();
+		second() += other.second();
+		return static_cast<Derived&>(*this);
+	}
+	Derived& operator-=(const _pair2D& other)
+	{
+		first() -= other.first();
+		second() -= other.second();
+		return static_cast<Derived&>(*this);
+	}
+	Derived& operator*=(T scalar)
+	{
+		first() *= scalar;
+		second() *= scalar;
+		return static_cast<Derived&>(*this);
+	}
+	Derived& operator*=(const _pair2D& other)
+	{
+		first() *= other.first();
+		second() *= other.second();
+		return static_cast<Derived&>(*this);
+	}
+	Derived& operator/=(T scalar)
+	{
+		first() /= scalar;
+		second() /= scalar;
+		return static_cast<Derived&>(*this);
+	}
+	Derived& operator/=(const _pair2D& other)
+	{
+		first() /= other.first();
+		second() /= other.second();
+		return static_cast<Derived&>(*this);
+	}
+
+	Derived operator-() const { return Derived(-first(), -second()); }
+	Derived operator+() const { return static_cast<const Derived&>(*this); }
+};
+
+template <typename T> struct Point : _pair2D<T, Point<T>>
 {
 	T x = 0, y = 0;
 
 	Point() = default;
-	Point(T x, T y) : x(x), y(y)
-	{
-	}
+	Point(T x, T y) : x(x), y(y) {}
 
-	// Explicitly default copy and move semantics
-	Point(const Point&) = default;
-	Point& operator=(const Point&) = default;
-	Point(Point&&) = default;
-	Point& operator=(Point&&) = default;
+	T& first_impl() { return x; }
+	const T& first_impl() const { return x; }
+	T& second_impl() { return y; }
+	const T& second_impl() const { return y; }
 
-	auto operator<=>(const Point& other) const = default; // all comparison operators
-	bool operator==(const Point& other) const = default;
-
-	Point operator+(const Point& other) const { return Point(x + other.x, y + other.y); }
-	Point operator-(const Point& other) const { return Point(x - other.x, y - other.y); }
-	Point operator*(T scalar) const { return Point(x * scalar, y * scalar); }
-	Point operator/(T scalar) const { return Point(x / scalar, y / scalar); }
-
-	// Compound assignment operators
-	Point& operator+=(const Point& rOther)
-	{
-		x += rOther.x;
-		y += rOther.y;
-		return *this;
-	}
-	Point& operator+=(T scalar)
-	{
-		x += scalar;
-		y += scalar;
-		return *this;
-	}
-	Point& operator-=(const Point& rOther)
-	{
-		x -= rOther.x;
-		y -= rOther.y;
-		return *this;
-	}
-	Point& operator-=(T scalar)
-	{
-		x -= scalar;
-		y -= scalar;
-		return *this;
-	}
-	Point& operator*=(const Point& rOther)
-	{
-		x *= rOther.x;
-		y *= rOther.y;
-		return *this;
-	}
-	Point& operator*=(T scalar)
-	{
-		x *= scalar;
-		y *= scalar;
-		return *this;
-	}
-	Point& operator/=(const Point& rOther)
-	{
-		x /= rOther.x;
-		y /= rOther.y;
-		return *this;
-	}
-	Point& operator/=(T scalar)
-	{
-		x /= scalar;
-		y /= scalar;
-		return *this;
-	}
-
-	// Unary operators
-	Point operator-() const { return {-x, -y}; }
-	Point operator+() const { return *this; }
-
-	// Distance calculation
 	T distanceTo(const Point& other) const requires(std::is_floating_point_v<T>)
 	{
-		Point delta = *this - other;
-		return std::sqrt(delta.x * delta.x + delta.y * delta.y);
+		T dx = x - other.x;
+		T dy = y - other.y;
+		return std::sqrt(dx * dx + dy * dy);
 	}
 
 	T distance(const Point& other) const requires(std::is_floating_point_v<T>)
 	{
-		return distanceTo(other);  // backward compat
+		return distanceTo(other);
 	}
 };
 
@@ -223,60 +223,92 @@ typedef Point<i64> i64Point;
 typedef Point<f32> f32Point;
 typedef Point<f64> f64Point;
 
-template <typename T> struct Rect
+template <typename T> struct Size : _pair2D<T, Size<T>>
+{
+	T width = 0, height = 0;
+
+	Size() = default;
+	Size(T width, T height) : width(width), height(height) {}
+
+	T& first_impl() { return width; }
+	const T& first_impl() const { return width; }
+	T& second_impl() { return height; }
+	const T& second_impl() const { return height; }
+
+	T area() const { return width * height; }
+};
+
+// Type aliases for Size
+typedef Size<u8> u8Size;
+typedef Size<u16> u16Size;
+typedef Size<u32> u32Size;
+typedef Size<u64> u64Size;
+typedef Size<i8> i8Size;
+typedef Size<i16> i16Size;
+typedef Size<i32> i32Size;
+typedef Size<i64> i64Size;
+typedef Size<f32> f32Size;
+typedef Size<f64> f64Size;
+
+template <typename T> struct Rectangle
 {
 	T x = 0, y = 0, w = 0, h = 0;
 
-	Rect() = default;
-	Rect(T x, T y, T w, T h) : x(x), y(y), w(w), h(h)
-	{
-	}
+	Rectangle() = default;
+	Rectangle(T x, T y, T w, T h) : x(x), y(y), w(w), h(h) {}
 
-	Rect(const Point<T>& rPosition, const Point<T>& rSize) : x(rPosition.x), y(rPosition.y), w(rSize.x), h(rSize.y)
-	{
-	}
+	Rectangle(const Point<T>& rPosition, const Size<T>& rSize) : x(rPosition.x), y(rPosition.y), w(rSize.width), h(rSize.height) {}
 
-	Rect(const Point<T>& rPosition, T width, T height) : x(rPosition.x), y(rPosition.y), w(width), h(height)
-	{
-	}
+	Rectangle(const Point<T>& rPosition, T width, T height) : x(rPosition.x), y(rPosition.y), w(width), h(height) {}
 
 	// Explicitly default copy and move semantics
-	Rect(const Rect&) = default;
-	Rect& operator=(const Rect&) = default;
-	Rect(Rect&&) = default;
-	Rect& operator=(Rect&&) = default;
+	Rectangle(const Rectangle&) = default;
+	Rectangle& operator=(const Rectangle&) = default;
+	Rectangle(Rectangle&&) = default;
+	Rectangle& operator=(Rectangle&&) = default;
 
-	auto operator<=>(const Rect& other) const = default; // all comparison operators
-	bool operator==(const Rect& other) const = default;
+	auto operator<=>(const Rectangle& other) const = default;
+	bool operator==(const Rectangle& other) const = default;
 
-	// Convenience helpers
-	Point<T> Size() const { return {w, h}; }
+	// Computed properties
+	Point<T> getPosition() const { return { x, y }; }
+	Size<T> getSize() const { return { w, h }; }
+	void setPosition(const Point<T>& rPos)
+	{
+		x = rPos.x;
+		y = rPos.y;
+	}
+	void setSize(const Size<T>& rSize)
+	{
+		w = rSize.width;
+		h = rSize.height;
+	}
 
 	T Left() const { return x; }
 	T Top() const { return y; }
 	T Right() const { return x + w; }
 	T Bottom() const { return y + h; }
 
-	Point<T> LeftTop() const { return {Left(), Top()}; }
-	Point<T> RightTop() const { return {Right(), Top()}; }
-	Point<T> LeftBottom() const { return {Left(), Bottom()}; }
-	Point<T> RightBottom() const { return {Right(), Bottom()}; }
+	Point<T> LeftTop() const { return { Left(), Top() }; }
+	Point<T> RightTop() const { return { Right(), Top() }; }
+	Point<T> LeftBottom() const { return { Left(), Bottom() }; }
+	Point<T> RightBottom() const { return { Right(), Bottom() }; }
 
-	Point<T> Center() const { return {x + w * (T)0.5, y + h * (T)0.5}; }
+	Point<T> Center() const { return { x + w * (T)0.5, y + h * (T)0.5 }; }
 
-	Point<T> center() const { return Center(); }  // backward compat
+	Point<T> center() const { return Center(); }
 
 	bool Contains(const Point<T>& rPoint) const
 	{
-		Rect normalized = Normalized();
+		Rectangle normalized = Normalized();
 		return (rPoint.x >= normalized.Left()) && (rPoint.x <= normalized.Right()) && (rPoint.y >= normalized.Top()) && (rPoint.y <= normalized.Bottom());
 	}
 
-	bool contains(const Point<T>& rPoint) const { return Contains(rPoint); }  // backward compat
+	bool contains(const Point<T>& rPoint) const { return Contains(rPoint); }
 
-	Rect Normalized() const
+	Rectangle Normalized() const
 	{
-		Rect retVal = *this;
+		Rectangle retVal = *this;
 
 		if (retVal.w < 0)
 		{
@@ -293,24 +325,24 @@ template <typename T> struct Rect
 		return retVal;
 	}
 
-	Rect& NormalizeInPlace()
+	Rectangle& NormalizeInPlace()
 	{
 		*this = Normalized();
 		return *this;
 	}
 
-	Rect Union(const Rect& rOther) const
+	Rectangle Union(const Rectangle& rOther) const
 	{
-		Rect a = Normalized();
-		Rect b = rOther.Normalized();
+		Rectangle a = Normalized();
+		Rectangle b = rOther.Normalized();
 
 		return FromMinMax(std::min(a.Left(), b.Left()), std::min(a.Top(), b.Top()), std::max(a.Right(), b.Right()), std::max(a.Bottom(), b.Bottom()));
 	}
 
-	Rect Intersection(const Rect& rOther) const
+	Rectangle Intersection(const Rectangle& rOther) const
 	{
-		Rect a = Normalized();
-		Rect b = rOther.Normalized();
+		Rectangle a = Normalized();
+		Rectangle b = rOther.Normalized();
 
 		T left = std::max(a.Left(), b.Left());
 		T top = std::max(a.Top(), b.Top());
@@ -326,23 +358,23 @@ template <typename T> struct Rect
 		return FromMinMax(left, top, right, bottom);
 	}
 
-	static Rect FromMinMax(T left, T top, T right, T bottom)
+	static Rectangle FromMinMax(T left, T top, T right, T bottom)
 	{
-		return Rect(left, top, right - left, bottom - top);
+		return Rectangle(left, top, right - left, bottom - top);
 	}
 };
 
-// Type aliases for Rect
-typedef Rect<u8> u8Rect;
-typedef Rect<u16> u16Rect;
-typedef Rect<u32> u32Rect;
-typedef Rect<u64> u64Rect;
-typedef Rect<i8> i8Rect;
-typedef Rect<i16> i16Rect;
-typedef Rect<i32> i32Rect;
-typedef Rect<i64> i64Rect;
-typedef Rect<f32> f32Rect;
-typedef Rect<f64> f64Rect;
+// Type aliases for Rectangle
+typedef Rectangle<u8> u8Rectangle;
+typedef Rectangle<u16> u16Rectangle;
+typedef Rectangle<u32> u32Rectangle;
+typedef Rectangle<u64> u64Rectangle;
+typedef Rectangle<i8> i8Rectangle;
+typedef Rectangle<i16> i16Rectangle;
+typedef Rectangle<i32> i32Rectangle;
+typedef Rectangle<i64> i64Rectangle;
+typedef Rectangle<f32> f32Rectangle;
+typedef Rectangle<f64> f64Rectangle;
 
 struct Color
 {
@@ -351,7 +383,7 @@ struct Color
 	u8 b = 0;
 	u8 a = 255;
 
-	static Color fromHex(const std::string& hexStr, Color fallback = {0, 0, 0, 255})
+	static Color fromHex(const std::string& hexStr, Color fallback = { 0, 0, 0, 255 })
 	{
 		if (hexStr.empty())
 			return fallback;
@@ -530,127 +562,165 @@ namespace Colors
 } // namespace Colors
 
 // PropertyDictionary — key-value property storage with delta tracking
-class PropertyDictionary {
-public:
+struct PropertyDictionary
+{
 	PropertyDictionary() = default;
 
-	bool has(const std::string& key) const {
+	bool has(const std::string& key) const
+	{
 		return m_deltas.find(key) != m_deltas.end() || m_org.find(key) != m_org.end();
 	}
 
-	std::string get(const std::string& key, const std::string& fallback = "") const {
+	std::string get(const std::string& key, const std::string& fallback = "") const
+	{
 		auto itDelta = m_deltas.find(key);
-		if (itDelta != m_deltas.end()) {
+		if (itDelta != m_deltas.end())
+		{
 			return itDelta->second;
 		}
 		auto itOrg = m_org.find(key);
-		if (itOrg != m_org.end()) {
+		if (itOrg != m_org.end())
+		{
 			return itOrg->second;
 		}
 		return fallback;
 	}
 
-	int getInt(const std::string& key, int fallback = 0) const {
+	i32 getInt(const std::string& key, i32 fallback = 0) const
+	{
 		std::string val = get(key);
-		if (val.empty()) return fallback;
-		try {
-			return std::stoi(val);
-		} catch (...) {
+		if (val.empty())
+			return fallback;
+		try
+		{
+			return static_cast<i32>(std::stoi(val));
+		} catch (...)
+		{
 			return fallback;
 		}
 	}
 
-	float getFloat(const std::string& key, float fallback = 0.0f) const {
+	f32 getFloat(const std::string& key, f32 fallback = 0.0f) const
+	{
 		std::string val = get(key);
-		if (val.empty()) return fallback;
-		try {
+		if (val.empty())
+			return fallback;
+		try
+		{
 			return std::stof(val);
-		} catch (...) {
+		} catch (...)
+		{
 			return fallback;
 		}
 	}
 
-	bool getBool(const std::string& key, bool fallback = false) const {
+	bool getBool(const std::string& key, bool fallback = false) const
+	{
 		std::string val = get(key);
-		if (val.empty()) return fallback;
+		if (val.empty())
+			return fallback;
 		std::string lower = val;
 		std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-		if (lower == "true" || lower == "1") return true;
-		if (lower == "false" || lower == "0") return false;
+		if (lower == "true" || lower == "1")
+			return true;
+		if (lower == "false" || lower == "0")
+			return false;
 		return fallback;
 	}
 
-	std::vector<std::string> getList(const std::string& prefix) const {
+	std::vector<std::string> getList(const std::string& prefix) const
+	{
 		std::vector<std::string> list;
-		if (!has(prefix)) {
+		if (!has(prefix))
+		{
 			return list;
 		}
 
 		list.push_back(get(prefix));
 		int index = 1;
-		while (true) {
+		while (true)
+		{
 			std::string nextKey = prefix + std::to_string(index);
-			if (has(nextKey)) {
+			if (has(nextKey))
+			{
 				list.push_back(get(nextKey));
 				index++;
-			} else {
+			}
+			else
+			{
 				break;
 			}
 		}
 		return list;
 	}
 
-	void set(const std::string& key, const std::string& value) {
+	void set(const std::string& key, const std::string& value)
+	{
 		auto itOrg = m_org.find(key);
-		if (itOrg != m_org.end() && itOrg->second == value) {
+		if (itOrg != m_org.end() && itOrg->second == value)
+		{
 			m_deltas.erase(key);
-		} else {
+		}
+		else
+		{
 			m_deltas[key] = value;
 		}
 	}
 
-	void setInt(const std::string& key, int value) {
+	void setInt(const std::string& key, int value)
+	{
 		set(key, std::to_string(value));
 	}
 
-	void setFloat(const std::string& key, float value) {
+	void setFloat(const std::string& key, float value)
+	{
 		set(key, std::to_string(value));
 	}
 
-	void setBool(const std::string& key, bool value) {
+	void setBool(const std::string& key, bool value)
+	{
 		set(key, value ? "true" : "false");
 	}
 
-	bool flipBool(const std::string& key, bool fallback = false) {
+	bool flipBool(const std::string& key, bool fallback = false)
+	{
 		bool next = !getBool(key, fallback);
 		setBool(key, next);
 		return next;
 	}
 
-	void remove(const std::string& key) {
+	void remove(const std::string& key)
+	{
 		m_deltas.erase(key);
 		m_org.erase(key);
 	}
 
-	void setOrg(const std::string& key, const std::string& value) {
+	void setOrg(const std::string& key, const std::string& value)
+	{
 		m_org[key] = value;
 	}
 
-	void revert() {
+	void revert()
+	{
 		m_deltas.clear();
 	}
 
-	void commit() {
-		for (const auto& [k, v] : m_deltas) {
+	void commit()
+	{
+		for (const auto& [k, v] : m_deltas)
+		{
 			m_org[k] = v;
 		}
 		m_deltas.clear();
 	}
 
-	std::vector<std::string> allKeys() const {
+	std::vector<std::string> allKeys() const
+	{
 		std::set<std::string> keys;
-		for (const auto& [k, v] : m_org) keys.insert(k);
-		for (const auto& [k, v] : m_deltas) keys.insert(k);
+		for (const auto& [k, v] : m_org)
+			keys.insert(k);
+		for (const auto& [k, v] : m_deltas)
+			keys.insert(k);
 		return std::vector<std::string>(keys.begin(), keys.end());
 	}
 

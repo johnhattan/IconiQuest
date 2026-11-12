@@ -4,31 +4,30 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
-class GlyphCache {
-public:
+struct GlyphCache
+{
 	static GlyphCache& instance();
 
-	bool init(SDL_Renderer* renderer, const std::string& imagesDir);
+	bool init(SDL_Renderer* pRenderer, const std::string& rImagesDir);
 	void shutdown();
 
-	void setImagesDir(const std::string& dir);
-	void setGameAssetsRoot(const std::string& root);
-	void setCurrentGame(const std::string& game);
-	std::string getImagesDir() const { return m_imagesDir; }
+	void setImagesDir(const std::string& rDir);
+	void setGameAssetsRoot(const std::string& rRoot);
+	void setCurrentGame(const std::string& rGame);
+	std::string getImagesDir() const { return _imagesDir; }
 
-	SDL_Texture* getTexture(const std::string& glyphName);
+	observer_ptr<SDL_Texture> getTexture(const std::string& rGlyphName);
 	std::vector<std::string> getAllGlyphs();
 
 	void renderGlyph(
-		const std::string& glyphName,
-		const f32Rect& dst,
-		float rotation = 0.0f,
-		bool flipH = false,
-		bool flipV = false,
-		float alpha = 1.0f
-	);
+	    const std::string& rGlyphName,
+	    const f32Rectangle& rDst,
+	    f32 rotation = 0.0f,
+	    bool flipH = false,
+	    bool flipV = false,
+	    f32 alpha = 1.0f);
 
-	void renderBlankBackground(const f32Rect& dst, float alpha = 1.0f);
+	void renderBlankBackground(const f32Rectangle& rDst, f32 alpha = 1.0f);
 
 	void clear();
 
@@ -36,11 +35,11 @@ private:
 	GlyphCache() = default;
 	~GlyphCache();
 
-	std::string resolvePath(const std::string& glyphName);
+	std::string resolvePath(const std::string& rGlyphName);
 
-	SDL_Renderer* m_renderer = nullptr;
-	std::string m_imagesDir;
-	std::string m_gameAssetsRoot;
-	std::string m_currentGame = "_default";
-	std::unordered_map<std::string, SDL_Texture*> m_textures;
+	observer_ptr<SDL_Renderer> _pRenderer;
+	std::string _imagesDir;
+	std::string _gameAssetsRoot;
+	std::string _currentGame = "_default";
+	std::unordered_map<std::string, observer_ptr<SDL_Texture>> _textures;
 };

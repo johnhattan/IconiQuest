@@ -1,198 +1,258 @@
-#include "pch.hpp"
 #include "AudioEngine.hpp"
+#include "pch.hpp"
 
 #include <SDL3/SDL.h>
 #include <SDL3_mixer/SDL_mixer.h>
 
-struct AudioEngine::Impl {
-    MIX_Mixer* mixer = nullptr;
-    MIX_Track* themeTrack = nullptr;
-    bool initialized = false;
+struct AudioEngine::Impl
+{
+	MIX_Mixer* pMixer = nullptr;
+	MIX_Track* pThemeTrack = nullptr;
+	bool initialized = false;
 };
 
-AudioEngine& AudioEngine::instance() {
-    static AudioEngine inst;
-    return inst;
+AudioEngine& AudioEngine::instance()
+{
+	static AudioEngine inst;
+	return inst;
 }
 
-AudioEngine::AudioEngine() : m_impl(std::make_unique<Impl>()) {}
-
-AudioEngine::~AudioEngine() {
-    shutdown();
+AudioEngine::AudioEngine() : _pImpl(std::make_unique<Impl>())
+{
 }
 
-bool AudioEngine::init(const std::string& soundsDir) {
-    m_soundsDir = soundsDir;
-    if (m_impl->initialized) {
-        return true;
-    }
-
-    if (!MIX_Init()) {
-        std::cerr << "[AudioEngine] Failed to initialize SDL_mixer." << std::endl;
-        return false;
-    }
-
-    SDL_AudioSpec spec{};
-    spec.freq = 44100;
-    spec.format = SDL_AUDIO_S16;
-    spec.channels = 2;
-
-    m_impl->mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
-    if (!m_impl->mixer) {
-        std::cerr << "[AudioEngine] Failed to create SDL_mixer device: " << SDL_GetError() << std::endl;
-        MIX_Quit();
-        return false;
-    }
-
-    m_impl->initialized = true;
-    return true;
+AudioEngine::~AudioEngine()
+{
+	shutdown();
 }
 
-void AudioEngine::shutdown() {
-    if (m_impl && m_impl->initialized) {
-        stopTheme();
-        if (m_impl->mixer) {
-            MIX_DestroyMixer(m_impl->mixer);
-            m_impl->mixer = nullptr;
-        }
-        MIX_Quit();
-        m_impl->initialized = false;
-    }
-}
+bool AudioEngine::init(const std::string& rSoundsDir)
+{
+	_soundsDir = rSoundsDir;
+	bool retVal = false;
 
-void AudioEngine::setSoundsDir(const std::string& dir) {
-	m_soundsDir = dir;
-}
+	if (_pImpl->initialized)
+	{
+		retVal = true;
+	}
+	else
+	{
+		if (!MIX_Init())
+		{
+			std::cerr << "[AudioEngine] Failed to initialize SDL_mixer." << std::endl;
+		}
+		else
+		{
+			SDL_AudioSpec spec{};
+			spec.freq = 44100;
+			spec.format = SDL_AUDIO_S16;
+			spec.channels = 2;
 
-void AudioEngine::setGameAssetsRoot(const std::string& root) {
-	m_gameAssetsRoot = root;
-}
-
-void AudioEngine::setCurrentGame(const std::string& game) {
-	m_currentGame = game;
-	// Stop the current theme when switching games
-	stopTheme();
-}
-
-std::string AudioEngine::resolveSoundPath(const std::string& name) {
-	if (name.empty()) return "";
-
-	std::vector<std::string> exts = {".ogg", ".mp3", ".wav", ".flac", ".mod"};
-	
-	// First priority: try the game-specific sounds folder (if not using _default)
-	if (!m_gameAssetsRoot.empty() && !m_currentGame.empty() && m_currentGame != "_default") {
-		for (const auto& ext : exts) {
-			std::filesystem::path p = std::filesystem::path(m_gameAssetsRoot) / m_currentGame / "sounds" / (name + ext);
-			if (std::filesystem::exists(p)) {
-				return p.string();
+			_pImpl->pMixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
+			if (!_pImpl->pMixer)
+			{
+				std::cerr << "[AudioEngine] Failed to create SDL_mixer device: " << SDL_GetError() << std::endl;
+				MIX_Quit();
+			}
+			else
+			{
+				_pImpl->initialized = true;
+				retVal = true;
 			}
 		}
 	}
 
-	// Second priority: fall back to default sounds dir
-	for (const auto& ext : exts) {
-		std::filesystem::path p = std::filesystem::path(m_soundsDir) / (name + ext);
-		if (std::filesystem::exists(p)) {
-			return p.string();
+	return retVal;
+}
+
+void AudioEngine::shutdown()
+{
+	if (_pImpl && _pImpl->initialized)
+	{
+		stopTheme();
+		if (_pImpl->pMixer)
+		{
+			MIX_DestroyMixer(_pImpl->pMixer);
+			_pImpl->pMixer = nullptr;
+		}
+		MIX_Quit();
+		_pImpl->initialized = false;
+	}
+}
+
+void AudioEngine::setSoundsDir(const std::string& rDir)
+{
+	_soundsDir = rDir;
+}
+
+void AudioEngine::setGameAssetsRoot(const std::string& rRoot)
+{
+	_gameAssetsRoot = rRoot;
+}
+
+void AudioEngine::setCurrentGame(const std::string& rGame)
+{
+	_currentGame = rGame;
+	// Stop the current theme when switching games
+	stopTheme();
+}
+
+std::string AudioEngine::resolveSoundPath(const std::string& rName)
+{
+	std::string retVal;
+
+	if (!rName.empty())
+	{
+		std::vector<std::string> exts = { ".ogg", ".mp3", ".wav", ".flac", ".mod" };
+
+		// First priority: try the game-specific sounds folder (if not using _default)
+		if (!_gameAssetsRoot.empty() && !_currentGame.empty() && _currentGame != "_default")
+		{
+			for (const auto& ext : exts)
+			{
+				std::filesystem::path p = std::filesystem::path(_gameAssetsRoot) / _currentGame / "sounds" / (rName + ext);
+				if (std::filesystem::exists(p))
+					retVal = p.string();
+			}
+		}
+
+		if (retVal.empty())
+		{
+			// Second priority: fall back to default sounds dir
+			for (const auto& ext : exts)
+			{
+				std::filesystem::path p = std::filesystem::path(_soundsDir) / (rName + ext);
+				if (std::filesystem::exists(p))
+					retVal = p.string();
+			}
+		}
+
+		if (retVal.empty())
+		{
+			// Third priority: try direct file (no extension)
+			std::filesystem::path direct = std::filesystem::path(_soundsDir) / rName;
+			if (std::filesystem::exists(direct))
+				retVal = direct.string();
 		}
 	}
 
-	// Third priority: try direct file (no extension)
-	std::filesystem::path direct = std::filesystem::path(m_soundsDir) / name;
-	if (std::filesystem::exists(direct)) {
-		return direct.string();
+	return retVal;
+}
+
+void AudioEngine::playSfx(const std::string& rName, f32 volume)
+{
+	if (_soundEnabled && _pImpl->initialized && !rName.empty())
+	{
+		std::string path = resolveSoundPath(rName);
+		if (!path.empty())
+		{
+			MIX_Audio* pAudio = MIX_LoadAudio(_pImpl->pMixer, path.c_str(), false);
+			if (!pAudio)
+				std::cerr << "[AudioEngine] Failed to load SFX: " << path << std::endl;
+			else
+			{
+				MIX_Track* pTrack = MIX_CreateTrack(_pImpl->pMixer);
+				if (!pTrack)
+					std::cerr << "[AudioEngine] Failed to create SFX track for: " << rName << std::endl;
+				else
+				{
+					if (!MIX_SetTrackAudio(pTrack, pAudio))
+					{
+						std::cerr << "[AudioEngine] Failed to assign audio to SFX track: " << rName << std::endl;
+						MIX_DestroyTrack(pTrack);
+					}
+					else
+					{
+						MIX_SetTrackGain(pTrack, volume);
+						MIX_PlayTrack(pTrack, 0);
+					}
+				}
+			}
+		}
+		else
+			std::cerr << "[AudioEngine] SFX not found: " << rName << std::endl;
 	}
-
-	return "";
 }
 
-void AudioEngine::playSfx(const std::string& name, float volume) {
-    if (!m_soundEnabled || !m_impl->initialized || name.empty()) return;
+void AudioEngine::playTheme(const std::string& rName, f32 volume)
+{
+	if (_musicEnabled && _pImpl->initialized && !rName.empty())
+	{
+		if (_currentTheme == rName && _pImpl->pThemeTrack)
+		{ // Already playing this theme
+		}
+		else
+		{
+			stopTheme();
 
-    std::string path = resolveSoundPath(name);
-    if (path.empty()) {
-        std::cerr << "[AudioEngine] SFX not found: " << name << std::endl;
-        return;
-    }
-
-    MIX_Audio* audio = MIX_LoadAudio(m_impl->mixer, path.c_str(), false);
-    if (!audio) {
-        std::cerr << "[AudioEngine] Failed to load SFX: " << path << std::endl;
-        return;
-    }
-
-    MIX_Track* track = MIX_CreateTrack(m_impl->mixer);
-    if (!track) {
-        std::cerr << "[AudioEngine] Failed to create SFX track for: " << name << std::endl;
-        return;
-    }
-
-    if (!MIX_SetTrackAudio(track, audio)) {
-        std::cerr << "[AudioEngine] Failed to assign audio to SFX track: " << name << std::endl;
-        MIX_DestroyTrack(track);
-        return;
-    }
-
-    MIX_SetTrackGain(track, volume);
-    MIX_PlayTrack(track, 0);
+			std::string path = resolveSoundPath(rName);
+			if (path.empty())
+			{
+				std::cerr << "[AudioEngine] Theme not found: " << rName << std::endl;
+			}
+			else
+			{
+				MIX_Audio* pAudio = MIX_LoadAudio(_pImpl->pMixer, path.c_str(), false);
+				if (!pAudio)
+				{
+					std::cerr << "[AudioEngine] Failed to load theme: " << path << std::endl;
+				}
+				else
+				{
+					MIX_Track* pTrack = MIX_CreateTrack(_pImpl->pMixer);
+					if (!pTrack)
+					{
+						std::cerr << "[AudioEngine] Failed to create theme track for: " << rName << std::endl;
+					}
+					else
+					{
+						if (!MIX_SetTrackAudio(pTrack, pAudio))
+						{
+							std::cerr << "[AudioEngine] Failed to attach theme audio for: " << rName << std::endl;
+							MIX_DestroyTrack(pTrack);
+						}
+						else
+						{
+							MIX_SetTrackGain(pTrack, volume);
+							MIX_SetTrackLoops(pTrack, -1);
+							if (MIX_PlayTrack(pTrack, 0))
+							{
+								_pImpl->pThemeTrack = pTrack;
+								_currentTheme = rName;
+							}
+							else
+							{
+								MIX_DestroyTrack(pTrack);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
-void AudioEngine::playTheme(const std::string& name, float volume) {
-    if (!m_musicEnabled || !m_impl->initialized || name.empty()) return;
-    if (m_currentTheme == name && m_impl->themeTrack) return;
-
-    stopTheme();
-
-    std::string path = resolveSoundPath(name);
-    if (path.empty()) {
-        std::cerr << "[AudioEngine] Theme not found: " << name << std::endl;
-        return;
-    }
-
-    MIX_Audio* audio = MIX_LoadAudio(m_impl->mixer, path.c_str(), false);
-    if (!audio) {
-        std::cerr << "[AudioEngine] Failed to load theme: " << path << std::endl;
-        return;
-    }
-
-    MIX_Track* track = MIX_CreateTrack(m_impl->mixer);
-    if (!track) {
-        std::cerr << "[AudioEngine] Failed to create theme track for: " << name << std::endl;
-        return;
-    }
-
-    if (!MIX_SetTrackAudio(track, audio)) {
-        std::cerr << "[AudioEngine] Failed to attach theme audio for: " << name << std::endl;
-        MIX_DestroyTrack(track);
-        return;
-    }
-
-    MIX_SetTrackGain(track, volume);
-    MIX_SetTrackLoops(track, -1);
-    if (MIX_PlayTrack(track, 0)) {
-        m_impl->themeTrack = track;
-        m_currentTheme = name;
-    } else {
-        MIX_DestroyTrack(track);
-    }
+void AudioEngine::stopTheme()
+{
+	if (_pImpl->initialized && _pImpl->pThemeTrack)
+	{
+		MIX_StopTrack(_pImpl->pThemeTrack, 0);
+		MIX_DestroyTrack(_pImpl->pThemeTrack);
+		_pImpl->pThemeTrack = nullptr;
+		_currentTheme.clear();
+	}
 }
 
-void AudioEngine::stopTheme() {
-    if (m_impl->initialized && m_impl->themeTrack) {
-        MIX_StopTrack(m_impl->themeTrack, 0);
-        MIX_DestroyTrack(m_impl->themeTrack);
-        m_impl->themeTrack = nullptr;
-        m_currentTheme.clear();
-    }
+void AudioEngine::toggleSound()
+{
+	_soundEnabled = !_soundEnabled;
 }
 
-void AudioEngine::toggleSound() {
-    m_soundEnabled = !m_soundEnabled;
-}
-
-void AudioEngine::toggleMusic() {
-    m_musicEnabled = !m_musicEnabled;
-    if (!m_musicEnabled) {
-        stopTheme();
-    }
+void AudioEngine::toggleMusic()
+{
+	_musicEnabled = !_musicEnabled;
+	if (!_musicEnabled)
+	{
+		stopTheme();
+	}
 }
