@@ -18,6 +18,7 @@ struct GlyphCache
 
 	observer_ptr<SDL_Texture> getTexture(const std::string& rGlyphName);
 	std::vector<std::string> getAllGlyphs();
+	bool isFromFontAwesome(const std::string& rGlyphName) const;
 
 	void renderGlyph(
 	    const std::string& rGlyphName,

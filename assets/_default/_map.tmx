@@ -18,12 +18,12 @@
     <property name="soundRelocate" value="sfxDoorOpen"/>
    </properties>
   </object>
-  <object id="142" name="glyphCopyright" gid="1" x="288" y="240" width="48" height="48">
+  <object id="142" name="copyright" gid="1" x="288" y="240" width="48" height="48">
    <properties>
     <property name="note" value="#\nCopyright (c) 2015\nThe Code Zone\nAll Rights Reserved\n#"/>
    </properties>
   </object>
-  <object id="143" name="glyphMansion" gid="1" x="432" y="240" width="48" height="48">
+  <object id="143" name="house" gid="1" x="432" y="240" width="48" height="48">
    <properties>
     <property name="relocaterDestTime" value="0"/>
     <property name="relocaterMap" value="Mansion"/>

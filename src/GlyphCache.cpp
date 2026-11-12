@@ -1,4 +1,5 @@
 #include "GlyphCache.hpp"
+#include "FontAwesomeIcons.hpp"
 #include "pch.hpp"
 
 GlyphCache& GlyphCache::instance()
@@ -63,9 +64,9 @@ std::string GlyphCache::resolvePath(const std::string& rGlyphName)
 	{
 		std::vector<std::string> exts = { ".svg", ".png" };
 
-		// First priority: try the game-specific images folder (if not using _default)
-		bool tryGameSpecific = !_gameAssetsRoot.empty() && !_currentGame.empty() && _currentGame != "_default";
-		if (tryGameSpecific)
+		// For non-_default games: check game-specific images folder first
+		bool isDefaultGame = _currentGame.empty() || _currentGame == "_default";
+		if (!isDefaultGame && !_gameAssetsRoot.empty())
 		{
 			for (const auto& ext : exts)
 			{
@@ -75,9 +76,9 @@ std::string GlyphCache::resolvePath(const std::string& rGlyphName)
 			}
 		}
 
+		// Second priority: check _default images folder (for all games)
 		if (retVal.empty())
 		{
-			// Second priority: fall back to default images dir
 			for (const auto& ext : exts)
 			{
 				std::filesystem::path p = std::filesystem::path(_imagesDir) / (rGlyphName + ext);
@@ -86,16 +87,28 @@ std::string GlyphCache::resolvePath(const std::string& rGlyphName)
 			}
 		}
 
+		// Third priority: try direct file (no extension)
 		if (retVal.empty())
 		{
-			// Third priority: try direct file (no extension)
 			std::filesystem::path direct = std::filesystem::path(_imagesDir) / rGlyphName;
 			if (std::filesystem::exists(direct))
 				retVal = direct.string();
 		}
+
+		// Fourth priority: check if it's a FontAwesome icon
+		if (retVal.empty())
+		{
+			if (FontAwesome::iconMap.find(rGlyphName) != FontAwesome::iconMap.end())
+				retVal = "fontawesome:" + rGlyphName;
+		}
 	}
 
 	return retVal;
+}
+
+bool GlyphCache::isFromFontAwesome(const std::string& rGlyphName) const
+{
+	return FontAwesome::iconMap.find(rGlyphName) != FontAwesome::iconMap.end();
 }
 
 observer_ptr<SDL_Texture> GlyphCache::getTexture(const std::string& rGlyphName)
@@ -112,9 +125,16 @@ observer_ptr<SDL_Texture> GlyphCache::getTexture(const std::string& rGlyphName)
 		else
 		{
 			std::string path = resolvePath(rGlyphName);
+			bool isFontAwesome = !path.empty() && path.substr(0, 11) == "fontawesome:";
 			bool pathFound = !path.empty();
 			if (!pathFound)
 				_textures[rGlyphName] = nullptr;
+			else if (isFontAwesome)
+			{
+				// FontAwesome icon - store a special marker
+				// Will be rendered as text by caller
+				_textures[rGlyphName] = nullptr;
+			}
 			else
 			{
 				observer_ptr<SDL_Surface> pSurface(IMG_Load(path.c_str()));
@@ -185,28 +205,41 @@ void GlyphCache::renderGlyph(const std::string& rGlyphName, const f32Rectangle& 
 	bool canRender = !rGlyphName.empty() && rGlyphName != "blank" && rGlyphName != "_blank_ignore";
 	if (canRender)
 	{
-		observer_ptr<SDL_Texture> pTex = getTexture(rGlyphName);
-		if (pTex)
+		bool isFontAwesome = isFromFontAwesome(rGlyphName);
+		if (isFontAwesome)
 		{
-			SDL_SetTextureAlphaModFloat(pTex.get(), alpha);
-
+			// FontAwesome icon - render placeholder rectangle with icon name
+			SDL_SetRenderDrawColor(_pRenderer.get(), 100, 150, 200, (Uint8)(alpha * 255.0f));
 			SDL_FRect fdst = { rDst.x, rDst.y, rDst.w, rDst.h };
-			SDL_FlipMode flip = SDL_FLIP_NONE;
-			bool flipBoth = flipH && flipV;
-			bool flipHOnly = flipH && !flipV;
-			bool flipVOnly = flipV && !flipH;
-			if (flipBoth)
-				flip = SDL_FLIP_HORIZONTAL_AND_VERTICAL;
-			else if (flipHOnly)
-				flip = SDL_FLIP_HORIZONTAL;
-			else if (flipVOnly)
-				flip = SDL_FLIP_VERTICAL;
+			SDL_RenderFillRect(_pRenderer.get(), &fdst);
+			SDL_SetRenderDrawColor(_pRenderer.get(), 255, 255, 255, (Uint8)(alpha * 255.0f));
+			SDL_RenderRect(_pRenderer.get(), &fdst);
+		}
+		else
+		{
+			observer_ptr<SDL_Texture> pTex = getTexture(rGlyphName);
+			if (pTex)
+			{
+				SDL_SetTextureAlphaModFloat(pTex.get(), alpha);
 
-			bool hasTransform = rotation != 0.0f || flip != SDL_FLIP_NONE;
-			if (hasTransform)
-				SDL_RenderTextureRotated(_pRenderer.get(), pTex.get(), NULL, &fdst, (double)rotation, NULL, flip);
-			else
-				SDL_RenderTexture(_pRenderer.get(), pTex.get(), NULL, &fdst);
+				SDL_FRect fdst = { rDst.x, rDst.y, rDst.w, rDst.h };
+				SDL_FlipMode flip = SDL_FLIP_NONE;
+				bool flipBoth = flipH && flipV;
+				bool flipHOnly = flipH && !flipV;
+				bool flipVOnly = flipV && !flipH;
+				if (flipBoth)
+					flip = SDL_FLIP_HORIZONTAL_AND_VERTICAL;
+				else if (flipHOnly)
+					flip = SDL_FLIP_HORIZONTAL;
+				else if (flipVOnly)
+					flip = SDL_FLIP_VERTICAL;
+
+				bool hasTransform = rotation != 0.0f || flip != SDL_FLIP_NONE;
+				if (hasTransform)
+					SDL_RenderTextureRotated(_pRenderer.get(), pTex.get(), NULL, &fdst, (double)rotation, NULL, flip);
+				else
+					SDL_RenderTexture(_pRenderer.get(), pTex.get(), NULL, &fdst);
+			}
 		}
 	}
 }

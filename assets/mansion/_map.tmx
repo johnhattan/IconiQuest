@@ -548,7 +548,7 @@
     <property name="soundRelocate" value="sfxDoorOpen"/>
    </properties>
   </object>
-  <object id="142" name="glyphCopyright" gid="1" x="3860" y="311" width="48" height="48">
+  <object id="142" name="copyright" gid="1" x="3860" y="311" width="48" height="48">
    <properties>
     <property name="note" value="#\nCopyright (c) 2015\nThe Code Zone\n#"/>
    </properties>
