@@ -1,3 +1,4 @@
+#include "Animation.hpp"
 #include "AudioEngine.hpp"
 #include "FontEngine.hpp"
 #include "GlyphCache.hpp"
@@ -119,6 +120,7 @@ i32 main(i32 argc, char* argv[])
 
 				std::string defaultGame = "_default";
 				std::string currentGame = defaultGame;
+				bool headlessTest = false;
 				for (i32 i = 1; i < argc; ++i)
 				{
 					std::string arg = argv[i];
@@ -129,6 +131,11 @@ i32 main(i32 argc, char* argv[])
 					else if (arg == "--dino")
 					{
 						currentGame = "dino";
+					}
+					else if (arg == "--test")
+					{
+						headlessTest = true;
+						currentGame = "mansion";
 					}
 				}
 
@@ -147,16 +154,6 @@ i32 main(i32 argc, char* argv[])
 				world.getCamera().setViewportSize(f32Size((f32)windowWidth, (f32)windowHeight));
 				world.setGameAssetsRoot(assetsRoot.string());
 				world.setCurrentGame(currentGame);
-
-				bool headlessTest = false;
-				for (i32 i = 1; i < argc; ++i)
-				{
-					if (std::string(argv[i]) == "--test")
-					{
-						headlessTest = true;
-						currentGame = "mansion";
-					}
-				}
 
 				std::string mapPath = resolveMapPath(currentGame).string();
 				std::cout << "[IconiQuest] Loading " << mapPath << " ..." << std::endl;
@@ -186,7 +183,7 @@ i32 main(i32 argc, char* argv[])
 						{
 							observer_ptr<Actor> table = part1->findActor("glyphTable");
 							observer_ptr<Actor> note = part1->findActor("glyphNoteInstructions");
-							observer_ptr<Actor> copy = part1->findActor("glyphCopyright");
+							observer_ptr<Actor> copy = part1->findActor("copyright");
 							observer_ptr<Actor> rug = part1->findActor("glyphRug");
 							observer_ptr<Actor> key = part1->findActor("glyphKey");
 
@@ -204,7 +201,7 @@ i32 main(i32 argc, char* argv[])
 								}
 								else if (!copy->isHidden())
 								{
-									std::cerr << "[Test Error] glyphCopyright should be hidden before table is clicked!" << std::endl;
+									std::cerr << "[Test Error] copyright should be hidden before table is clicked!" << std::endl;
 									retVal = 1;
 								}
 								else if (!key->isHidden())
@@ -214,7 +211,7 @@ i32 main(i32 argc, char* argv[])
 								}
 								else
 								{
-									std::cout << "[Test] Confirmed: glyphNoteInstructions, glyphCopyright, and glyphKey are initially hidden." << std::endl;
+									std::cout << "[Test] Confirmed: glyphNoteInstructions, copyright, and glyphKey are initially hidden." << std::endl;
 
 									table->onTap(1);
 									if (note->isHidden())
@@ -229,12 +226,12 @@ i32 main(i32 argc, char* argv[])
 										table->onTap(1);
 										if (copy->isHidden())
 										{
-											std::cerr << "[Test Error] glyphCopyright should be revealed after second click on table!" << std::endl;
+											std::cerr << "[Test Error] copyright should be revealed after second click on table!" << std::endl;
 											retVal = 1;
 										}
 										else
 										{
-											std::cout << "[Test] Confirmed: glyphCopyright revealed after second click on table." << std::endl;
+											std::cout << "[Test] Confirmed: copyright revealed after second click on table." << std::endl;
 
 											f32Point rugOrgPos = rug->getOrgPos();
 											f32 deltaX = rug->props.getFloat("revealDeltaX", 0.0f);
@@ -353,6 +350,7 @@ i32 main(i32 argc, char* argv[])
 								}
 							}
 
+							AnimationManager::instance().update(dt);
 							world.update(dt);
 
 							world.render(renderer);

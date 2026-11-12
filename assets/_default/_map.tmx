@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="16" height="9" tilewidth="48" tileheight="48" infinite="0" backgroundcolor="#000000" nextlayerid="15" nextobjectid="147">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="16" height="9" tilewidth="48" tileheight="48" infinite="0" backgroundcolor="#000000" nextlayerid="15" nextobjectid="148">
  <tileset firstgid="1" name="main" tilewidth="48" tileheight="48" tilecount="20" columns="20">
   <image source="_map.png" width="960" height="48"/>
+ </tileset>
+ <tileset firstgid="21" name="main" tilewidth="48" tileheight="48" tilecount="20" columns="20">
+  <image source="../mansion/_map.png" width="960" height="48"/>
  </tileset>
  <objectgroup color="#a0a4a4" id="14" name="_start">
   <properties>
@@ -10,7 +13,7 @@
    <property name="soundThemeEnter" value="sndThemeHall"/>
    <property name="soundThemeNumTimes" value="999"/>
   </properties>
-  <object id="20" name="dimensions" type="Bounds" x="240" y="144" width="279.36" height="198"/>
+  <object id="20" name="dimensions" type="Bounds" x="123.388" y="81.1082" width="407.764" height="267.443"/>
   <object id="21" name="glyphDino" gid="1" x="336" y="336" width="48" height="48">
    <properties>
     <property name="relocaterDestTime" value="0"/>
@@ -18,16 +21,29 @@
     <property name="soundRelocate" value="sfxDoorOpen"/>
    </properties>
   </object>
-  <object id="142" name="copyright" gid="1" x="288" y="240" width="48" height="48">
+  <object id="142" name="copyright" gid="1" x="464.228" y="260.309" width="48" height="48">
    <properties>
     <property name="note" value="#\nCopyright (c) 2015\nThe Code Zone\nAll Rights Reserved\n#"/>
    </properties>
   </object>
-  <object id="143" name="house" gid="1" x="432" y="240" width="48" height="48">
+  <object id="143" name="house" gid="1" x="408.416" y="334.993" width="48" height="48">
    <properties>
     <property name="relocaterDestTime" value="0"/>
     <property name="relocaterMap" value="Mansion"/>
     <property name="soundRelocate" value="sfxDoorOpen"/>
+   </properties>
+  </object>
+  <object id="147" name="glyphMouse" gid="21" x="266.219" y="238.049" width="48" height="48">
+   <properties>
+    <property name="moveDeltaX" value="-90"/>
+    <property name="moveDeltaX1" value="10"/>
+    <property name="moveDeltaX2" value="100"/>
+    <property name="moveDeltaY" value="20"/>
+    <property name="moveDeltaY1" value="25"/>
+    <property name="moveDeltaY2" value="-5"/>
+    <property name="moveEasing" value="elasticOut"/>
+    <property name="moveTime" value="0.3"/>
+    <property name="soundMove" value="sfxMouse"/>
    </properties>
   </object>
  </objectgroup>

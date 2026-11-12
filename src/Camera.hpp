@@ -1,11 +1,14 @@
 #pragma once
 
 #include "pch.hpp"
+#include <tweeny/tweeny.h>
+#include <tweeny/detail/easing/by-name.h>
 
 struct Camera
 {
 	Camera(f32 viewportW = 800.0f, f32 viewportH = 600.0f) :
-	    _viewport(viewportW, viewportH)
+	    _viewport(viewportW, viewportH),
+	    _easing(tweeny::easing::byName("cubicOut"))
 	{
 	}
 
@@ -18,7 +21,7 @@ struct Camera
 	f32 getViewportWidth() const { return _viewport.width; }
 	f32 getViewportHeight() const { return _viewport.height; }
 
-	void frameRect(const f32Rectangle& rTarget, f32 duration = 0.75f)
+	void frameRect(const f32Rectangle& rTarget, f32 duration = 0.75f, const std::string& rEasing = "cubicOut")
 	{
 		if (rTarget.w > 0.0f && rTarget.h > 0.0f)
 		{
@@ -35,6 +38,7 @@ struct Camera
 				instantFrame(rTarget);
 			else
 			{
+				_easing = tweeny::easing::byName(rEasing);
 				_duration = duration;
 				_timer = 0.0f;
 				_isTransitioning = true;
@@ -62,8 +66,8 @@ struct Camera
 			_timer += dt;
 			f32 t = std::min(1.0f, _timer / _duration);
 
-			// Smooth cubic ease out
-			f32 ease = 1.0f - std::pow(1.0f - t, 3.0f);
+			// Apply easing function
+			f32 ease = _easing(t, 0.0f, 1.0f);
 
 			_curPos.x = _startPos.x + (_targetPos.x - _startPos.x) * ease;
 			_curPos.y = _startPos.y + (_targetPos.y - _startPos.y) * ease;
@@ -113,4 +117,5 @@ private:
 	f32 _timer = 0.0f;
 	f32 _duration = 0.75f;
 	bool _isTransitioning = false;
+	tweeny::easing::byNameEasing _easing;
 };

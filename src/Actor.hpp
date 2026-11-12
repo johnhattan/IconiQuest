@@ -29,6 +29,7 @@ struct Actor
 
 	f32Point getPos() const;
 	void setPos(const f32Point& rPos);
+	void animateTo(const f32Point& rTarget, f32 duration, const std::string& rEasing = "linear");
 	f32Point getOrgPos() const { return bounds.getPosition(); }
 
 	f32 getWidth() const { return bounds.w; }

@@ -1,4 +1,5 @@
 #include "Actor.hpp"
+#include "Animation.hpp"
 #include "AudioEngine.hpp"
 #include "GlyphCache.hpp"
 #include "Location.hpp"
@@ -26,6 +27,11 @@ void Actor::setPos(const f32Point& rPos)
 {
 	props.setFloat("x", rPos.x);
 	props.setFloat("y", rPos.y);
+}
+
+void Actor::animateTo(const f32Point& rTarget, f32 duration, const std::string& rEasing)
+{
+	AnimationManager::instance().animate(observer_ptr<Actor>(this), rTarget, duration, rEasing);
 }
 
 f32Rectangle Actor::getBounds() const
@@ -203,10 +209,17 @@ void Actor::onPlace()
 	if (!dx.empty() && !dy.empty())
 	{
 		i32 idx = props.getInt("moveIndex", -1);
+		f32 duration = props.getFloat("moveTime", 0.0f);
+		std::string easing = props.get("moveEasing", "linear");
+		f32Point targetPos = bounds.getPosition();
+		
 		if (idx >= 0 && idx < (i32)dx.size() && idx < (i32)dy.size())
-			setPos({ bounds.x + std::stof(dx[idx]), bounds.y + std::stof(dy[idx]) });
+			targetPos = { bounds.x + std::stof(dx[idx]), bounds.y + std::stof(dy[idx]) };
+		
+		if (duration > 0.0f)
+			animateTo(targetPos, duration, easing);
 		else
-			setPos(bounds.getPosition());
+			setPos(targetPos);
 	}
 }
 
@@ -228,10 +241,11 @@ bool Actor::onTap(i32 numTaps)
 				{
 					std::string dest = props.get("relocaterDest");
 					float time = props.getFloat("relocaterDestTime", 0.75f);
+					std::string easing = props.get("relocaterDestEasing", "linear");
 					std::string snd = props.get("soundRelocate");
 					if (!snd.empty())
 						AudioEngine::instance().playSfx(snd);
-					pWorld->changeLocation(dest, time);
+					pWorld->changeLocation(dest, time, easing);
 					retVal = true;
 				}
 			}
@@ -242,10 +256,11 @@ bool Actor::onTap(i32 numTaps)
 				{
 					std::string mapName = props.get("relocaterMap");
 					float time = props.getFloat("relocaterMapTime", 0.75f);
+					std::string easing = props.get("relocaterMapEasing", "linear");
 					std::string snd = props.get("soundRelocateMap");
 					if (!snd.empty())
 						AudioEngine::instance().playSfx(snd);
-					pWorld->switchGame(mapName, time);
+					pWorld->switchGame(mapName, time, easing);
 					retVal = true;
 				}
 			}

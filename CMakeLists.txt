@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(IconiQuest VERSION 1.0.0 LANGUAGES CXX)
+project(IconiQuest VERSION 1.0.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,6 +20,15 @@ set(IMGUI_SOURCES
     ${IMGUI_DIR}/backends/imgui_impl_sdlrenderer3.cpp
 )
 
+# SDL3_gfx sources
+set(SDL3_GFX_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/SDL3_gfx")
+add_library(SDL3_gfx STATIC
+    ${SDL3_GFX_DIR}/SDL3_gfxPrimitives.c
+    ${SDL3_GFX_DIR}/SDL3_rotozoom.c
+)
+target_include_directories(SDL3_gfx PUBLIC ${SDL3_GFX_DIR})
+target_link_libraries(SDL3_gfx PUBLIC SDL3::SDL3)
+
 # Engine sources
 file(GLOB_RECURSE ENGINE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
@@ -32,6 +41,7 @@ target_include_directories(iconiquest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/tweeny/include
 )
 
 target_link_libraries(iconiquest PRIVATE
@@ -40,6 +50,7 @@ target_link_libraries(iconiquest PRIVATE
     SDL3_mixer::SDL3_mixer
     SDL3_ttf::SDL3_ttf
     pugixml::pugixml
+    SDL3_gfx
 )
 
 if(APPLE)

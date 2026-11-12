@@ -4,6 +4,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
+struct TTF_Font;
+
 struct GlyphCache
 {
 	static GlyphCache& instance();
@@ -37,10 +39,12 @@ private:
 	~GlyphCache();
 
 	std::string resolvePath(const std::string& rGlyphName);
+	observer_ptr<SDL_Texture> renderFontAwesomeGlyph(const std::string& rGlyphName, i32 size = 48);
 
 	observer_ptr<SDL_Renderer> _pRenderer;
 	std::string _imagesDir;
 	std::string _gameAssetsRoot;
 	std::string _currentGame = "_default";
 	std::unordered_map<std::string, observer_ptr<SDL_Texture>> _textures;
+	observer_ptr<TTF_Font> _pFontAwesomeFont;
 };

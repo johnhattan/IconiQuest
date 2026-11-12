@@ -4,6 +4,7 @@
 #include "Camera.hpp"
 #include "Location.hpp"
 #include "pch.hpp"
+#include "SDL3_gfxPrimitives.h"
 
 struct World
 {
@@ -42,8 +43,8 @@ struct World
 	observer_ptr<Location> findLocation(const std::string& rName) const;
 	observer_ptr<Location> getCurrentLocation() const { return currentLocation; }
 
-	void changeLocation(const std::string& rName, f32 transitionTime = 0.75f);
-	void switchGame(const std::string& rGameName, f32 transitionTime = 0.75f);
+	void changeLocation(const std::string& rName, f32 transitionTime = 0.75f, const std::string& rEasing = "linear");
+	void switchGame(const std::string& rGameName, f32 transitionTime = 0.75f, const std::string& rEasing = "linear");
 	void revertWorld();
 	void revertCurrentLocation();
 

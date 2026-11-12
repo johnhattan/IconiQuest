@@ -107,13 +107,13 @@ observer_ptr<Location> World::findLocation(const std::string& rName) const
 	return retVal;
 }
 
-void World::changeLocation(const std::string& rName, f32 transitionTime)
+void World::changeLocation(const std::string& rName, f32 transitionTime, const std::string& rEasing)
 {
 	observer_ptr<Location> loc = findLocation(rName);
 	if (loc && loc != currentLocation)
 	{
 		currentLocation = loc;
-		camera.frameRect(loc->getBounds(), transitionTime);
+		camera.frameRect(loc->getBounds(), transitionTime, rEasing);
 		hideNoteBubble();
 
 		// Play room sound and theme
@@ -133,7 +133,7 @@ void World::changeLocation(const std::string& rName, f32 transitionTime)
 	}
 }
 
-void World::switchGame(const std::string& rGameName, f32 transitionTime)
+void World::switchGame(const std::string& rGameName, f32 transitionTime, const std::string& rEasing)
 { // Resolve the map path for the new game
 	std::string mapFileName = "_map.tmx";
 	std::filesystem::path newMapPath;
@@ -164,7 +164,7 @@ void World::switchGame(const std::string& rGameName, f32 transitionTime)
 	if (loadSuccess)
 	{ // Frame the first location with transition
 		if (currentLocation)
-			camera.frameRect(currentLocation->getBounds(), transitionTime);
+			camera.frameRect(currentLocation->getBounds(), transitionTime, rEasing);
 	}
 }
 
@@ -512,12 +512,9 @@ void World::renderNoteBubble(SDL_Renderer* pRenderer)
 			f32 bubbleY = anchorScreen.y - (noteAnchorActor->getHeight() * camera.getScale() * 0.5f) - bubbleH - 12.0f;
 
 			// Background bubble rect
-			SDL_FRect bgRect = { bubbleX, bubbleY, bubbleW, bubbleH };
-			SDL_SetRenderDrawColor(pRenderer, 240, 240, 245, 230);
-			SDL_RenderFillRect(pRenderer, &bgRect);
-
-			SDL_SetRenderDrawColor(pRenderer, 40, 40, 45, 255);
-			SDL_RenderRect(pRenderer, &bgRect);
+			f32Rectangle bgRectF(bubbleX, bubbleY, bubbleW, bubbleH);
+			roundedBoxRGBA(pRenderer, (i16)bubbleX, (i16)bubbleY, (i16)(bubbleX + bubbleW), (i16)(bubbleY + bubbleH), 20, 240, 240, 245, 230);
+			roundedRectangleRGBA(pRenderer, (i16)bubbleX, (i16)bubbleY, (i16)(bubbleX + bubbleW), (i16)(bubbleY + bubbleH), 20, 40, 40, 45, 255);
 
 			// Render text (centered both horizontally and vertically)
 			f32Rectangle textRect(bubbleX + textPadding, bubbleY + textPadding, bubbleW - textPadding * 2.0f, bubbleH - textPadding * 2.0f);
@@ -570,12 +567,9 @@ void World::renderInventoryPod(SDL_Renderer* pRenderer)
 		f32 currentX = viewW - (trayW + 10.0f) * inventoryAnim;
 		f32 currentY = 70.0f;
 
-		SDL_FRect trayRect = { currentX, currentY, trayW, trayH };
-		SDL_SetRenderDrawColor(pRenderer, 30, 32, 40, (Uint8)(inventoryAnim * 230.0f));
-		SDL_RenderFillRect(pRenderer, &trayRect);
-
-		SDL_SetRenderDrawColor(pRenderer, 90, 100, 120, (Uint8)(inventoryAnim * 255.0f));
-		SDL_RenderRect(pRenderer, &trayRect);
+		f32Rectangle trayRectF(currentX, currentY, trayW, trayH);
+		roundedBoxRGBA(pRenderer, (i16)currentX, (i16)currentY, (i16)(currentX + trayW), (i16)(currentY + trayH), 10, 30, 32, 40, (Uint8)(inventoryAnim * 230.0f));
+		roundedRectangleRGBA(pRenderer, (i16)currentX, (i16)currentY, (i16)(currentX + trayW), (i16)(currentY + trayH), 10, 90, 100, 120, (Uint8)(inventoryAnim * 255.0f));
 
 		// Slots grid (5 cols x 3 rows)
 		i32 cols = 5;
