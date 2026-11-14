@@ -566,89 +566,91 @@ struct PropertyDictionary
 {
 	PropertyDictionary() = default;
 
-	bool has(const std::string& key) const
-	{
-		return m_deltas.find(key) != m_deltas.end() || m_org.find(key) != m_org.end();
-	}
+	bool has(const std::string& key) const { return _deltas.find(key) != _deltas.end() || _org.find(key) != _org.end(); }
 
 	std::string get(const std::string& key, const std::string& fallback = "") const
 	{
-		auto itDelta = m_deltas.find(key);
-		if (itDelta != m_deltas.end())
+		std::string retVal = fallback;
+		auto itDelta = _deltas.find(key);
+		if (itDelta != _deltas.end())
+			retVal = itDelta->second;
+		else
 		{
-			return itDelta->second;
+			auto itOrg = _org.find(key);
+			if (itOrg != _org.end())
+				retVal = itOrg->second;
 		}
-		auto itOrg = m_org.find(key);
-		if (itOrg != m_org.end())
-		{
-			return itOrg->second;
-		}
-		return fallback;
+		return retVal;
 	}
 
 	i32 getInt(const std::string& key, i32 fallback = 0) const
 	{
+		i32 retVal = fallback;
 		std::string val = get(key);
-		if (val.empty())
-			return fallback;
-		try
+		if (!val.empty())
 		{
-			return static_cast<i32>(std::stoi(val));
-		} catch (...)
-		{
-			return fallback;
+			try
+			{
+				retVal = static_cast<i32>(std::stoi(val));
+			} catch (...)
+			{
+				retVal = fallback;
+			}
 		}
+		return retVal;
 	}
 
 	f32 getFloat(const std::string& key, f32 fallback = 0.0f) const
 	{
+		f32 retVal = fallback;
 		std::string val = get(key);
-		if (val.empty())
-			return fallback;
-		try
+		if (!val.empty())
 		{
-			return std::stof(val);
-		} catch (...)
-		{
-			return fallback;
+			try
+			{
+				retVal = std::stof(val);
+			} catch (...)
+			{
+				retVal = fallback;
+			}
 		}
+		return retVal;
 	}
 
 	bool getBool(const std::string& key, bool fallback = false) const
 	{
+		bool retVal = fallback;
 		std::string val = get(key);
-		if (val.empty())
-			return fallback;
-		std::string lower = val;
-		std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-		if (lower == "true" || lower == "1")
-			return true;
-		if (lower == "false" || lower == "0")
-			return false;
-		return fallback;
+		if (!val.empty())
+		{
+			std::string lower = val;
+			std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+			if (lower == "true" || lower == "1")
+				retVal = true;
+			else if (lower == "false" || lower == "0")
+				retVal = false;
+		}
+		return retVal;
 	}
 
 	std::vector<std::string> getList(const std::string& prefix) const
 	{
 		std::vector<std::string> list;
-		if (!has(prefix))
+		if (has(prefix))
 		{
-			return list;
-		}
-
-		list.push_back(get(prefix));
-		int index = 1;
-		while (true)
-		{
-			std::string nextKey = prefix + std::to_string(index);
-			if (has(nextKey))
+			list.push_back(get(prefix));
+			int index = 1;
+			bool found = true;
+			while (found)
 			{
-				list.push_back(get(nextKey));
-				index++;
-			}
-			else
-			{
-				break;
+				std::string nextKey = prefix + std::to_string(index);
+				if (has(nextKey))
+				{
+					list.push_back(get(nextKey));
+					index++;
+				}
+				else
+					found = false;
 			}
 		}
 		return list;
@@ -656,32 +658,17 @@ struct PropertyDictionary
 
 	void set(const std::string& key, const std::string& value)
 	{
-		auto itOrg = m_org.find(key);
-		if (itOrg != m_org.end() && itOrg->second == value)
-		{
-			m_deltas.erase(key);
-		}
+		auto itOrg = _org.find(key);
+		if (itOrg != _org.end() && itOrg->second == value)
+			_deltas.erase(key);
 		else
-		{
-			m_deltas[key] = value;
-		}
+			_deltas[key] = value;
 	}
 
-	void setInt(const std::string& key, int value)
-	{
-		set(key, std::to_string(value));
-	}
+	void setInt(const std::string& key, int value) { set(key, std::to_string(value)); }
+	void setFloat(const std::string& key, float value) { set(key, std::to_string(value)); }
 
-	void setFloat(const std::string& key, float value)
-	{
-		set(key, std::to_string(value));
-	}
-
-	void setBool(const std::string& key, bool value)
-	{
-		set(key, value ? "true" : "false");
-	}
-
+	void setBool(const std::string& key, bool value) { set(key, value ? "true" : "false"); }
 	bool flipBool(const std::string& key, bool fallback = false)
 	{
 		bool next = !getBool(key, fallback);
@@ -691,43 +678,35 @@ struct PropertyDictionary
 
 	void remove(const std::string& key)
 	{
-		m_deltas.erase(key);
-		m_org.erase(key);
+		_deltas.erase(key);
+		_org.erase(key);
 	}
 
-	void setOrg(const std::string& key, const std::string& value)
-	{
-		m_org[key] = value;
-	}
+	void setOrg(const std::string& key, const std::string& value) { _org[key] = value; }
 
-	void revert()
-	{
-		m_deltas.clear();
-	}
+	void revert() { _deltas.clear(); }
 
 	void commit()
 	{
-		for (const auto& [k, v] : m_deltas)
-		{
-			m_org[k] = v;
-		}
-		m_deltas.clear();
+		for (const auto& [k, v] : _deltas)
+			_org[k] = v;
+		_deltas.clear();
 	}
 
 	std::vector<std::string> allKeys() const
 	{
 		std::set<std::string> keys;
-		for (const auto& [k, v] : m_org)
+		for (const auto& [k, v] : _org)
 			keys.insert(k);
-		for (const auto& [k, v] : m_deltas)
+		for (const auto& [k, v] : _deltas)
 			keys.insert(k);
 		return std::vector<std::string>(keys.begin(), keys.end());
 	}
 
-	const std::unordered_map<std::string, std::string>& getOrg() const { return m_org; }
-	const std::unordered_map<std::string, std::string>& getDeltas() const { return m_deltas; }
+	const std::unordered_map<std::string, std::string>& getOrg() const { return _org; }
+	const std::unordered_map<std::string, std::string>& getDeltas() const { return _deltas; }
 
 private:
-	std::unordered_map<std::string, std::string> m_org;
-	std::unordered_map<std::string, std::string> m_deltas;
+	std::unordered_map<std::string, std::string> _org;
+	std::unordered_map<std::string, std::string> _deltas;
 };

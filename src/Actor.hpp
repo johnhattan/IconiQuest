@@ -54,8 +54,8 @@ struct Actor
 	bool isRevealer() const;
 
 	f32 getRotation() const;
-	bool getFlipHoriz() const;
-	bool getFlipVert() const;
+	bool isFlipHoriz() const;
+	bool isFlipVert() const;
 
 	virtual void onPlace();
 	virtual bool onTap(i32 numTaps = 1);

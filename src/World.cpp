@@ -5,7 +5,12 @@
 #include "TmxLoader.hpp"
 #include "pch.hpp"
 
-World::World() : camera(800.0f, 600.0f) {}
+World::World() : camera(800.0f, 600.0f), settingsPod(PodCorner::BottomLeft, 200.0f, 150.0f, "cog"), inventoryPod(PodCorner::TopRight, Pod::calculateInventoryWidth(4), Pod::calculateInventoryHeight(3), "backpack") 
+{
+	inventoryPod.pInventoryItems = observer_ptr<std::vector<observer_ptr<Actor>>>(&inventoryItems);
+	inventoryPod.inventoryCols = 4;
+	inventoryPod.inventoryRows = 3;
+}
 
 World::~World() = default;
 
@@ -221,17 +226,24 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 	mouseScreenPos = rScreenPt;
 	bool retVal = false;
 
-	// 1. Check Inventory Button click (top right)
-	f32 invBtnX = camera.getViewportWidth() - 56.0f;
-	f32 invBtnY = 16.0f;
-	f32Rectangle invBtnRect(invBtnX, invBtnY, 48.0f, 48.0f);
-	if (invBtnRect.contains(rScreenPt))
+	// 1. Check Pod clicks
+	bool settingsPodHandled = settingsPod.onClick(rScreenPt, camera.getViewportWidth(), camera.getViewportHeight());
+	bool inventoryPodHandled = inventoryPod.onClick(rScreenPt, camera.getViewportWidth(), camera.getViewportHeight());
+
+	if (inventoryPodHandled)
 	{
-		toggleInventory();
+		inventoryOpen = inventoryPod.isExpanded;
 		AudioEngine::instance().playSfx("sfxDrawer");
 		retVal = true;
 	}
-	else if (inventoryOpen)
+
+	if (settingsPodHandled && !inventoryPodHandled)
+	{
+		AudioEngine::instance().playSfx("sfxDrawer");
+		retVal = true;
+	}
+
+	if (!retVal && inventoryOpen)
 	{
 		// 2. Check if clicking inside open inventory tray
 		f32 trayX = camera.getViewportWidth() - 320.0f;
@@ -418,9 +430,12 @@ void World::update(f32 dt)
 			hideNoteBubble();
 	}
 
-	// Animate inventory slide
-	f32 targetAnim = inventoryOpen ? 1.0f : 0.0f;
-	inventoryAnim += (targetAnim - inventoryAnim) * std::min(1.0f, dt * 10.0f);
+	// Update pods
+	settingsPod.update(dt);
+	inventoryPod.update(dt);
+
+	// Sync inventory pod state with inventoryOpen flag
+	inventoryOpen = inventoryPod.isExpanded;
 }
 
 void World::render(SDL_Renderer* pRenderer)
@@ -438,14 +453,15 @@ void World::render(SDL_Renderer* pRenderer)
 				f32Rectangle screenBounds = camera.worldToScreenRect(a->getBounds());
 				if (a->isDrawBackground())
 					GlyphCache::instance().renderBlankBackground(screenBounds);
-				GlyphCache::instance().renderGlyph(a->getActiveGlyph(), screenBounds, a->getRotation(), a->getFlipHoriz(), a->getFlipVert());
+				GlyphCache::instance().renderGlyph(a->getActiveGlyph(), screenBounds, a->getRotation(), a->isFlipHoriz(), a->isFlipVert());
 			}
 		}
 	}
 
 	renderNoteBubble(pRenderer); // 3. Draw Note / Speech Bubble if active
 
-	renderInventoryPod(pRenderer); // 4. Draw Inventory Drawer & Toggle Button
+	settingsPod.render(pRenderer, camera.getViewportWidth(), camera.getViewportHeight());
+	inventoryPod.render(pRenderer, camera.getViewportWidth(), camera.getViewportHeight());
 
 	if (actorBeingDragged)
 	{ // 5. Draw Actor Being Dragged (Ceiling layer under mouse)
@@ -455,7 +471,7 @@ void World::render(SDL_Renderer* pRenderer)
 		if (actorBeingDragged->isDrawBackground())
 			GlyphCache::instance().renderBlankBackground(dragBounds, 0.9f);
 
-		GlyphCache::instance().renderGlyph(actorBeingDragged->getActiveGlyph(), dragBounds, actorBeingDragged->getRotation(), actorBeingDragged->getFlipHoriz(), actorBeingDragged->getFlipVert(), 0.9f);
+		GlyphCache::instance().renderGlyph(actorBeingDragged->getActiveGlyph(), dragBounds, actorBeingDragged->getRotation(), actorBeingDragged->isFlipHoriz(), actorBeingDragged->isFlipVert(), 0.9f);
 	}
 }
 
@@ -550,52 +566,4 @@ void World::renderNoteBubble(SDL_Renderer* pRenderer)
 	}
 }
 
-void World::renderInventoryPod(SDL_Renderer* pRenderer)
-{
-	f32 viewW = camera.getViewportWidth();
 
-	// Inventory Toggle Button (top right)
-	f32Rectangle invBtnRect(viewW - 56.0f, 16.0f, 48.0f, 48.0f);
-	GlyphCache::instance().renderBlankBackground(invBtnRect, 0.85f);
-	GlyphCache::instance().renderGlyph("_podInventory", invBtnRect);
-
-	// Sliding Drawer
-	if (inventoryAnim > 0.01f)
-	{
-		f32 trayW = 310.0f;
-		f32 trayH = 180.0f;
-		f32 currentX = viewW - (trayW + 10.0f) * inventoryAnim;
-		f32 currentY = 70.0f;
-
-		f32Rectangle trayRectF(currentX, currentY, trayW, trayH);
-		roundedBoxRGBA(pRenderer, (i16)currentX, (i16)currentY, (i16)(currentX + trayW), (i16)(currentY + trayH), 10, 30, 32, 40, (Uint8)(inventoryAnim * 230.0f));
-		roundedRectangleRGBA(pRenderer, (i16)currentX, (i16)currentY, (i16)(currentX + trayW), (i16)(currentY + trayH), 10, 90, 100, 120, (Uint8)(inventoryAnim * 255.0f));
-
-		// Slots grid (5 cols x 3 rows)
-		i32 cols = 5;
-		i32 rows = 3;
-		f32 slotSize = 44.0f;
-		f32 gap = 12.0f;
-		for (i32 r = 0; r < rows; ++r)
-		{
-			for (i32 c = 0; c < cols; ++c)
-			{
-				f32 sx = currentX + 16.0f + c * (slotSize + gap);
-				f32 sy = currentY + 16.0f + r * (slotSize + gap);
-				f32Rectangle slotRect(sx, sy, slotSize, slotSize);
-				GlyphCache::instance().renderGlyph("_podInventoryBlank", slotRect, 0.0f, false, false, inventoryAnim * 0.7f);
-			}
-		}
-
-		for (uindex i = 0; (i < inventoryItems.size()) && (i32)(i / cols) < rows; ++i)
-		{ // Render collected items inside slots
-			i32 r = (i32)(i / cols);
-			i32 c = (i32)(i % cols);
-			f32 sx = currentX + 16.0f + c * (slotSize + gap);
-			f32 sy = currentY + 16.0f + r * (slotSize + gap);
-			f32Rectangle itemRect(sx, sy, slotSize, slotSize);
-			inventoryItems[i]->setPos({ sx + slotSize * 0.5f, sy + slotSize * 0.5f });
-			inventoryItems[i]->render(pRenderer, inventoryAnim);
-		}
-	}
-}

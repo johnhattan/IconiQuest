@@ -185,7 +185,7 @@ i32 main(i32 argc, char* argv[])
 							observer_ptr<Actor> note = part1->findActor("glyphNoteInstructions");
 							observer_ptr<Actor> copy = part1->findActor("copyright");
 							observer_ptr<Actor> rug = part1->findActor("glyphRug");
-							observer_ptr<Actor> key = part1->findActor("glyphKey");
+							observer_ptr<Actor> key = part1->findActor("key-skeleton");
 
 							if (!table || !note || !copy || !rug || !key)
 							{
@@ -206,12 +206,12 @@ i32 main(i32 argc, char* argv[])
 								}
 								else if (!key->isHidden())
 								{
-									std::cerr << "[Test Error] glyphKey should be hidden before rug is clicked!" << std::endl;
+									std::cerr << "[Test Error] key-skeleton should be hidden before rug is clicked!" << std::endl;
 									retVal = 1;
 								}
 								else
 								{
-									std::cout << "[Test] Confirmed: glyphNoteInstructions, copyright, and glyphKey are initially hidden." << std::endl;
+									std::cout << "[Test] Confirmed: glyphNoteInstructions, copyright, and key-skeleton are initially hidden." << std::endl;
 
 									table->onTap(1);
 									if (note->isHidden())
@@ -235,7 +235,9 @@ i32 main(i32 argc, char* argv[])
 
 											f32Point rugOrgPos = rug->getOrgPos();
 											f32 deltaX = rug->props.getFloat("revealDeltaX", 0.0f);
+											f32 revealTime = rug->props.getFloat("revealTime", 0.0f);
 											rug->onTap(1);
+											AnimationManager::instance().update(revealTime + 0.1f);
 											if (key->isHidden())
 											{
 												std::cerr << "[Test Error] glyphKey should be revealed after clicking rug!" << std::endl;
@@ -251,6 +253,7 @@ i32 main(i32 argc, char* argv[])
 												std::cout << "[Test] Confirmed: glyphRug shifts by " << deltaX << " and reveals glyphKey." << std::endl;
 
 												rug->onTap(1);
+												AnimationManager::instance().update(revealTime + 0.1f);
 												if (!key->isHidden())
 												{
 													std::cerr << "[Test Error] glyphKey should be hidden after clicking rug again (revealLoop=true)!" << std::endl;

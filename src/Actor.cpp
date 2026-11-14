@@ -69,21 +69,20 @@ bool Actor::isDrawBackground() const
 
 std::string Actor::getActiveGlyph() const
 {
-	std::string retVal(name);
+	std::string retVal = props.has("glyph") ? props.get("glyph") : name;
 
-	if (props.getBool("toggled", false))
+	if (props.getBool("revealed", false))
+	{
+		if (props.has("glyphRevealed"))
+			retVal = props.get("glyphRevealed");
+	}
+	else if (props.getBool("toggled", false))
 	{
 		if (props.has("glyphToggled"))
 			retVal = props.get("glyphToggled");
 		else
 			retVal = name + "Toggled";
 	}
-
-	if (props.has("glyphRevealed") && props.getBool("revealed", false))
-		retVal = props.get("glyphRevealed");
-
-	if (props.has("glyph"))
-		retVal = props.get("glyph");
 
 	return retVal;
 }
@@ -130,12 +129,12 @@ f32 Actor::getRotation() const
 	return props.getFloat("glyphRotation", 0.0f);
 }
 
-bool Actor::getFlipHoriz() const
+bool Actor::isFlipHoriz() const
 {
 	return props.getBool("glyphFlipHoriz", false);
 }
 
-bool Actor::getFlipVert() const
+bool Actor::isFlipVert() const
 {
 	return props.getBool("glyphFlipVert", false);
 }
@@ -190,10 +189,14 @@ void Actor::onPlace()
 		// Apply revealer motion (revealDeltaX / revealDeltaY)
 		if (xDelta != 0.0f || yDelta != 0.0f)
 		{
-			if (anyRevealed)
-				setPos({ bounds.x + xDelta, bounds.y + yDelta });
+			f32Point targetPos = anyRevealed ? f32Point{ bounds.x + xDelta, bounds.y + yDelta } : bounds.getPosition();
+			f32 revealTime = props.getFloat("revealTime", 0.0f);
+			std::string revealEasing = props.get("revealEasing", "linear");
+
+			if (revealTime > 0.0f)
+				animateTo(targetPos, revealTime, revealEasing);
 			else
-				setPos(bounds.getPosition());
+				setPos(targetPos);
 		}
 
 		// Apply revealerHide
@@ -212,10 +215,10 @@ void Actor::onPlace()
 		f32 duration = props.getFloat("moveTime", 0.0f);
 		std::string easing = props.get("moveEasing", "linear");
 		f32Point targetPos = bounds.getPosition();
-		
+
 		if (idx >= 0 && idx < (i32)dx.size() && idx < (i32)dy.size())
 			targetPos = { bounds.x + std::stof(dx[idx]), bounds.y + std::stof(dy[idx]) };
-		
+
 		if (duration > 0.0f)
 			animateTo(targetPos, duration, easing);
 		else
@@ -453,6 +456,6 @@ void Actor::render(SDL_Renderer* pRenderer, f32 alpha)
 		Rectangle bounds = getBounds();
 		if (isDrawBackground())
 			GlyphCache::instance().renderBlankBackground(bounds, alpha);
-		GlyphCache::instance().renderGlyph(getActiveGlyph(), bounds, getRotation(), getFlipHoriz(), getFlipVert(), alpha);
+		GlyphCache::instance().renderGlyph(getActiveGlyph(), bounds, getRotation(), isFlipHoriz(), isFlipVert(), alpha);
 	}
 }

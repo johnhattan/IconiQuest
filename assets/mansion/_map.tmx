@@ -405,7 +405,7 @@
     <property name="relocaterDestTime" value="1"/>
    </properties>
   </object>
-  <object id="84" name="glyphSafe" gid="1" x="2784.85" y="363.636" width="48" height="48">
+  <object id="84" name="glyphSafe" gid="1" x="2783.35" y="370.136" width="48" height="48">
    <properties>
     <property name="revealActor" value="glyphGun"/>
     <property name="revealTime" value="0.5"/>
@@ -495,6 +495,7 @@
   </object>
   <object id="26" name="glyphDoorNext" gid="1" x="3313.64" y="364.667" width="48" height="48">
    <properties>
+    <property name="glyph" value="glyphDoorNext"/>
     <property name="relocaterDest" value="part3"/>
     <property name="relocaterDestTime" value="1"/>
     <property name="soundRelocate" value="sfxDoorOpen"/>
@@ -502,18 +503,21 @@
   </object>
   <object id="27" name="glyphUmbrella" gid="1" x="3479.64" y="296.667" width="48" height="48">
    <properties>
+    <property name="glyph" value="glyphUmbrella"/>
     <property name="item" value="true"/>
     <property name="toggle" value="true"/>
    </properties>
   </object>
   <object id="28" name="glyphDoorPrev" gid="1" x="3561.64" y="354.667" width="48" height="48">
    <properties>
+    <property name="glyph" value="glyphDoorPrev"/>
     <property name="relocaterDest" value="part1"/>
     <property name="relocaterDestTime" value="0.75"/>
    </properties>
   </object>
   <object id="90" name="glyphCorkscrew" gid="1" x="3421.21" y="339.394" width="48" height="48">
    <properties>
+    <property name="glyph" value="glyphCorkscrew"/>
     <property name="item" value="true"/>
    </properties>
   </object>
@@ -526,8 +530,9 @@
    <property name="soundThemeNumTimes" value="999"/>
   </properties>
   <object id="20" name="dimensions" type="Bounds" x="3630.64" y="217.667" width="279.36" height="198"/>
-  <object id="23" name="glyphKey" gid="1" x="3751.24" y="385.455" width="48" height="48">
+  <object id="23" name="key-skeleton" gid="1" x="3770.74" y="372.455" width="24" height="24">
    <properties>
+    <property name="glyph" value="key-skeleton"/>
     <property name="hidden" value="true"/>
     <property name="item" value="true"/>
     <property name="soundItemDrag" value="sfxKey"/>
@@ -536,10 +541,10 @@
   </object>
   <object id="21" name="glyphRug" gid="1" x="3736.64" y="376.667" width="48" height="48">
    <properties>
-    <property name="revealActor" value="glyphKey"/>
-    <property name="revealDeltaX" value="-45"/>
+    <property name="revealActor" value="key-skeleton"/>
+    <property name="revealDeltaX" value="-25"/>
     <property name="revealLoop" value="true"/>
-    <property name="revealTime" value="0.75"/>
+    <property name="revealTime" value="0.5"/>
    </properties>
   </object>
   <object id="22" name="glyphDoorNext" gid="1" x="3641.64" y="362.667" width="48" height="48">
@@ -574,6 +579,6 @@
     <property name="note3" value="glyphWalking"/>
    </properties>
   </object>
-  <object id="147" name="glyphDino" gid="1" x="3711" y="293.5" width="48" height="48"/>
+  <object id="147" name="glyphDino" gid="1" x="3711" y="263.5" width="18" height="18"/>
  </objectgroup>
 </map>

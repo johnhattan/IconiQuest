@@ -26,13 +26,17 @@ bool GlyphCache::init(SDL_Renderer* pRenderer, const std::string& rImagesDir)
 	std::vector<std::string> fontExtensions = { "FontAwesome-Regular.ttf", "FontAwesome-Regular.otf" };
 
 	std::filesystem::path fontPath;
+	bool fontFound = false;
 	for (const auto& ext : fontExtensions)
 	{
-		std::filesystem::path candidate = fontsDir / ext;
-		if (std::filesystem::exists(candidate))
+		if (!fontFound)
 		{
-			fontPath = candidate;
-			break;
+			std::filesystem::path candidate = fontsDir / ext;
+			if (std::filesystem::exists(candidate))
+			{
+				fontPath = candidate;
+				fontFound = true;
+			}
 		}
 	}
 
@@ -105,18 +109,18 @@ std::string GlyphCache::resolvePath(const std::string& rGlyphName)
 	if (!rGlyphName.empty())
 	{
 		std::vector<std::string> exts = { ".svg", ".png" };
+		bool isDefaultGame = _currentGame.empty() || _currentGame == "_default";
 
 		// For non-_default games: check game-specific images folder first
-		bool isDefaultGame = _currentGame.empty() || _currentGame == "_default";
-		if (!isDefaultGame && !_gameAssetsRoot.empty())
+		if (!isDefaultGame && !_gameAssetsRoot.empty() && retVal.empty())
 		{
 			for (const auto& ext : exts)
 			{
-				std::filesystem::path p = std::filesystem::path(_gameAssetsRoot) / _currentGame / "images" / (rGlyphName + ext);
-				if (std::filesystem::exists(p))
+				if (retVal.empty())
 				{
-					retVal = p.string();
-					break;
+					std::filesystem::path p = std::filesystem::path(_gameAssetsRoot) / _currentGame / "images" / (rGlyphName + ext);
+					if (std::filesystem::exists(p))
+						retVal = p.string();
 				}
 			}
 		}
@@ -126,11 +130,11 @@ std::string GlyphCache::resolvePath(const std::string& rGlyphName)
 		{
 			for (const auto& ext : exts)
 			{
-				std::filesystem::path p = std::filesystem::path(_imagesDir) / (rGlyphName + ext);
-				if (std::filesystem::exists(p))
+				if (retVal.empty())
 				{
-					retVal = p.string();
-					break;
+					std::filesystem::path p = std::filesystem::path(_imagesDir) / (rGlyphName + ext);
+					if (std::filesystem::exists(p))
+						retVal = p.string();
 				}
 			}
 		}
@@ -214,60 +218,60 @@ observer_ptr<SDL_Texture> GlyphCache::renderFontAwesomeGlyph(const std::string& 
 {
 	observer_ptr<SDL_Texture> retVal;
 
-	if (!_pFontAwesomeFont || !_pRenderer)
-		return retVal;
-
-	// Get the Unicode codepoint for this icon
-	auto it = FontAwesome::iconMap.find(rGlyphName);
-	if (it == FontAwesome::iconMap.end())
-		return retVal;
-
-	u32 codepoint = it->second;
-
-	// Convert codepoint to UTF-8 string
-	std::string utf8Char;
-	if (codepoint < 0x80)
-		utf8Char = static_cast<char>(codepoint);
-	else if (codepoint < 0x800)
+	bool canRender = _pFontAwesomeFont && _pRenderer;
+	if (canRender)
 	{
-		utf8Char += static_cast<char>(0xC0 | (codepoint >> 6));
-		utf8Char += static_cast<char>(0x80 | (codepoint & 0x3F));
-	}
-	else if (codepoint < 0x10000)
-	{
-		utf8Char += static_cast<char>(0xE0 | (codepoint >> 12));
-		utf8Char += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
-		utf8Char += static_cast<char>(0x80 | (codepoint & 0x3F));
-	}
-	else
-	{
-		utf8Char += static_cast<char>(0xF0 | (codepoint >> 18));
-		utf8Char += static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
-		utf8Char += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
-		utf8Char += static_cast<char>(0x80 | (codepoint & 0x3F));
+		// Get the Unicode codepoint for this icon
+		auto it = FontAwesome::iconMap.find(rGlyphName);
+		bool foundIcon = it != FontAwesome::iconMap.end();
+
+		if (foundIcon)
+		{
+			u32 codepoint = it->second;
+
+			// Convert codepoint to UTF-8 string
+			std::string utf8Char;
+			if (codepoint < 0x80)
+				utf8Char = static_cast<char>(codepoint);
+			else if (codepoint < 0x800)
+			{
+				utf8Char += static_cast<char>(0xC0 | (codepoint >> 6));
+				utf8Char += static_cast<char>(0x80 | (codepoint & 0x3F));
+			}
+			else if (codepoint < 0x10000)
+			{
+				utf8Char += static_cast<char>(0xE0 | (codepoint >> 12));
+				utf8Char += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+				utf8Char += static_cast<char>(0x80 | (codepoint & 0x3F));
+			}
+			else
+			{
+				utf8Char += static_cast<char>(0xF0 | (codepoint >> 18));
+				utf8Char += static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
+				utf8Char += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+				utf8Char += static_cast<char>(0x80 | (codepoint & 0x3F));
+			}
+
+			// Render glyph to surface using the codepoint directly
+			SDL_Color black = { 0, 0, 0, 255 };
+			observer_ptr<SDL_Surface> pSurface(TTF_RenderGlyph_Blended(_pFontAwesomeFont.get(), codepoint, black));
+
+			if (pSurface)
+			{
+				// Convert surface to texture
+				observer_ptr<SDL_Texture> pTex(SDL_CreateTextureFromSurface(_pRenderer.get(), pSurface.get()));
+				SDL_DestroySurface(pSurface.get());
+
+				if (pTex)
+					retVal = pTex;
+				else
+					std::cerr << "[GlyphCache] Failed to create texture for FontAwesome glyph '" << rGlyphName << "': " << SDL_GetError() << std::endl;
+			}
+			else
+				std::cerr << "[GlyphCache] Failed to render FontAwesome glyph '" << rGlyphName << "': " << SDL_GetError() << std::endl;
+		}
 	}
 
-	// Render glyph to surface using the codepoint directly
-	SDL_Color black = { 0, 0, 0, 255 };
-	observer_ptr<SDL_Surface> pSurface(TTF_RenderGlyph_Blended(_pFontAwesomeFont.get(), codepoint, black));
-
-	if (!pSurface)
-	{
-		std::cerr << "[GlyphCache] Failed to render FontAwesome glyph '" << rGlyphName << "': " << SDL_GetError() << std::endl;
-		return retVal;
-	}
-
-	// Convert surface to texture
-	observer_ptr<SDL_Texture> pTex(SDL_CreateTextureFromSurface(_pRenderer.get(), pSurface.get()));
-	SDL_DestroySurface(pSurface.get());
-
-	if (!pTex)
-	{
-		std::cerr << "[GlyphCache] Failed to create texture for FontAwesome glyph '" << rGlyphName << "': " << SDL_GetError() << std::endl;
-		return retVal;
-	}
-
-	retVal = pTex;
 	return retVal;
 }
 

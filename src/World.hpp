@@ -3,6 +3,7 @@
 #include "Actor.hpp"
 #include "Camera.hpp"
 #include "Location.hpp"
+#include "Pod.hpp"
 #include "pch.hpp"
 #include "SDL3_gfxPrimitives.h"
 
@@ -24,8 +25,9 @@ struct World
 	std::vector<std::string> activeNotes;
 	f32 noteTimer = 0.0f;
 	bool inventoryOpen = false;
-	f32 inventoryAnim = 0.0f;
 	std::vector<observer_ptr<Actor>> inventoryItems;
+	Pod settingsPod;
+	Pod inventoryPod;
 
 	World();
 	~World();
@@ -72,5 +74,4 @@ struct World
 
 private:
 	void renderNoteBubble(SDL_Renderer* pRenderer);
-	void renderInventoryPod(SDL_Renderer* pRenderer);
 };
