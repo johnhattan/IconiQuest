@@ -20,12 +20,21 @@ struct World
 	Camera camera;
 	observer_ptr<Actor> actorBeingDragged;
 	f32Point dragOffset;
+	bool draggedFromInventory = false;
+	i32 draggedFromInventorySlot = -1;
 	f32Point mouseScreenPos;
+	observer_ptr<Actor> clickedActor;
+	i32 clickedInventorySlot = -1;
+	f32Point clickStartPos;
+	f32 dragThreshold = 10.0f; // pixels
+	f32 podHoverTimer = 0.0f;
+	f32 podAutoExpandDelay = 0.5f; // seconds
 	observer_ptr<Actor> noteAnchorActor;
 	std::vector<std::string> activeNotes;
 	f32 noteTimer = 0.0f;
 	bool inventoryOpen = false;
 	std::vector<observer_ptr<Actor>> inventoryItems;
+	std::unordered_map<Actor*, f32Size> inventoryOriginalSizes;
 	Pod settingsPod;
 	Pod inventoryPod;
 
@@ -73,5 +82,6 @@ struct World
 	const std::string& getCurrentGame() const { return currentGame; }
 
 private:
+	i32 findInventorySlotAtPoint(const f32Point& rScreenPt) const;
 	void renderNoteBubble(SDL_Renderer* pRenderer);
 };

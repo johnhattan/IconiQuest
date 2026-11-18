@@ -151,7 +151,15 @@ i32 main(i32 argc, char* argv[])
 				FontEngine::instance().init(defaultFontPath, 16);
 
 				World world;
+				
+				// Keep viewport at logical size for game logic and input
 				world.getCamera().setViewportSize(f32Size((f32)windowWidth, (f32)windowHeight));
+				
+				// But track the physical size for rendering operations
+				i32 renderWidth = windowWidth, renderHeight = windowHeight;
+				SDL_GetCurrentRenderOutputSize(renderer, &renderWidth, &renderHeight);
+				world.getCamera().setPhysicalViewportSize(f32Size((f32)renderWidth, (f32)renderHeight));
+				
 				world.setGameAssetsRoot(assetsRoot.string());
 				world.setCurrentGame(currentGame);
 
@@ -322,6 +330,10 @@ i32 main(i32 argc, char* argv[])
 									i32 w, h;
 									SDL_GetWindowSize(window, &w, &h);
 									world.getCamera().setViewportSize(f32Size((f32)w, (f32)h));
+									
+									i32 renderWidth = w, renderHeight = h;
+									SDL_GetCurrentRenderOutputSize(renderer, &renderWidth, &renderHeight);
+									world.getCamera().setPhysicalViewportSize(f32Size((f32)renderWidth, (f32)renderHeight));
 								}
 
 								if (!io.WantCaptureMouse)
