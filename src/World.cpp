@@ -5,7 +5,7 @@
 #include "TmxLoader.hpp"
 #include "pch.hpp"
 
-World::World() : camera(800.0f, 600.0f), settingsPod(PodCorner::BottomLeft, 200.0f, 150.0f, "cog"), inventoryPod(PodCorner::TopRight, Pod::calculateInventoryWidth(4), Pod::calculateInventoryHeight(3), "backpack") 
+World::World() : camera(800.0f, 600.0f), settingsPod(PodCorner::TopRight, 200.0f, 150.0f, "cog"), inventoryPod(PodCorner::BottomLeft, Pod::calculateInventoryWidth(4), Pod::calculateInventoryHeight(3), "backpack") 
 {
 	inventoryPod.pInventoryItems = observer_ptr<std::vector<observer_ptr<Actor>>>(&inventoryItems);
 	inventoryPod.inventoryCols = 4;
