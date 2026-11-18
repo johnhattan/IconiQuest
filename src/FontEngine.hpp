@@ -18,7 +18,7 @@ struct FontEngine
 	void shutdown();
 
 	void renderText(observer_ptr<SDL_Renderer> pRenderer, const std::string& rText, const f32Point& rPos, const class Color& rColor);
-	void renderText(observer_ptr<SDL_Renderer> pRenderer, const std::string& rText, const f32Rectangle& rRect, const class Color& rColor, bool centered = false);
+	void renderText(observer_ptr<SDL_Renderer> pRenderer, const std::string& rText, const f32Rectangle& rRect, const class Color& rColor, bool centered = false, f32 scale = 1.0f);
 
 	i32 getTextWidth(const std::string& rText) const;
 	i32 getTextHeight(const std::string& rText) const;

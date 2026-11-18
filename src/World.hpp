@@ -82,6 +82,8 @@ struct World
 	const std::string& getCurrentGame() const { return currentGame; }
 
 private:
+	bool mousePressed = false;
 	i32 findInventorySlotAtPoint(const f32Point& rScreenPt) const;
+	observer_ptr<Actor> findActorAtPoint(const f32Point& rScreenPt) const;
 	void renderNoteBubble(SDL_Renderer* pRenderer);
 };

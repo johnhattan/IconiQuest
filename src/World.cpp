@@ -4,8 +4,9 @@
 #include "GlyphCache.hpp"
 #include "TmxLoader.hpp"
 #include "pch.hpp"
+#include <iostream>
 
-World::World() : camera(800.0f, 600.0f), settingsPod(PodCorner::TopRight, 200.0f, 150.0f, "cog"), inventoryPod(PodCorner::BottomLeft, Pod::calculateInventoryWidth(4), Pod::calculateInventoryHeight(3), "backpack") 
+World::World() : camera(800.0f, 600.0f), settingsPod(PodCorner::TopRight, 200.0f, 150.0f, "cog"), inventoryPod(PodCorner::BottomLeft, Pod::calculateInventoryWidth(4), Pod::calculateInventoryHeight(3), "backpack")
 {
 	inventoryPod.pInventoryItems = observer_ptr<std::vector<observer_ptr<Actor>>>(&inventoryItems);
 	inventoryPod.inventoryCols = 4;
@@ -120,7 +121,7 @@ void World::changeLocation(const std::string& rName, f32 transitionTime, const s
 		currentLocation = loc;
 		camera.frameRect(loc->getBounds(), transitionTime, rEasing);
 		hideNoteBubble();
-		
+
 		// Clear any active drag/click state when changing locations
 		actorBeingDragged = nullptr;
 		clickedActor = nullptr;
@@ -228,43 +229,63 @@ bool World::isItemInInventory(const observer_ptr<Actor> pActor) const
 	return retVal;
 }
 
-bool World::handleMouseDown(const f32Point& rScreenPt)
+observer_ptr<Actor> World::findActorAtPoint(const f32Point& rScreenPt) const
 {
-	
-	mouseScreenPos = rScreenPt;
-	bool retVal = false;
+	observer_ptr<Actor> retVal = nullptr;
+	f32 minDist = 99999.0f;
 
-	// First, check if clicking on a draggable actor outside the inventory
-	// If so, don't let the pod close
-	observer_ptr<Actor> potentialDraggable = nullptr;
-	if (currentLocation && !camera.isTransitioning())
+	if (currentLocation)
 	{
-		f32Point logicalPt = rScreenPt / camera.getDpiScale();
-		f32Point worldPt = camera.screenToWorld(logicalPt);
-		f32 minDist = 99999.0f;
-
 		for (const auto& a : currentLocation->getActors())
 		{
-			if (a && !a->isHidden() && !isItemInInventory(a.get()) && a->isDraggable())
+			if (a && !a->isHidden() && !isItemInInventory(a.get()))
 			{
-				f32 dist = a->getPos().distance(worldPt);
-				f32 touchRadius = std::max(a->getWidth(), a->getHeight()) * 0.55f;
-				if (dist < touchRadius && dist < minDist)
+				f32Rectangle screenBounds = camera.worldToScreenRect(a->getBounds());
+				const f32 touchPadding = 12.0f;
+				screenBounds.x -= touchPadding;
+				screenBounds.y -= touchPadding;
+				screenBounds.w += touchPadding * 2.0f;
+				screenBounds.h += touchPadding * 2.0f;
+				if (screenBounds.contains(rScreenPt))
 				{
-					minDist = dist;
-					potentialDraggable = a.get();
+					f32Point screenCenter = screenBounds.center();
+					f32 dist = screenCenter.distance(rScreenPt);
+					if (dist < minDist)
+					{
+						minDist = dist;
+						retVal = a.get();
+					}
 				}
 			}
 		}
 	}
 
-	// 1. Check Pod clicks (but skip if we're about to drag a room actor)
+	return retVal;
+}
+
+bool World::handleMouseDown(const f32Point& rScreenPt)
+{
+	bool retVal = false;
+	if (mousePressed)
+	{
+		return retVal;
+	}
+	mousePressed = true;
+
+	mouseScreenPos = rScreenPt;
+
+	// First, check if clicking on a draggable actor outside the inventory
+	// If so, don't let the pod close
+	observer_ptr<Actor> potentialActor =
+	    !camera.isTransitioning() ? findActorAtPoint(rScreenPt) : nullptr;
+
+	// 1. Check Pod clicks (but skip if an actor is underneath)
 	bool settingsPodHandled = false;
 	bool inventoryPodHandled = false;
-	
-	if (!potentialDraggable)
+
+	if (!potentialActor)
 	{
-		f32Point logicalClickPt = rScreenPt / camera.getDpiScale();
+		f32Point logicalClickPt = rScreenPt;
 		settingsPodHandled = settingsPod.onClick(logicalClickPt, camera.getViewportWidth(), camera.getViewportHeight());
 		inventoryPodHandled = inventoryPod.onClick(logicalClickPt, camera.getViewportWidth(), camera.getViewportHeight());
 	}
@@ -286,9 +307,7 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 	{
 		// 2. Check if clicking inside open inventory pod
 		f32Rectangle podRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
-		f32 dpiScale = camera.getDpiScale();
-		f32Rectangle podRectPhysical(podRect.x * dpiScale, podRect.y * dpiScale, podRect.w * dpiScale, podRect.h * dpiScale);
-		if (podRectPhysical.contains(rScreenPt))
+		if (podRect.contains(rScreenPt))
 		{
 			// Find which slot was clicked
 			i32 slotIndex = findInventorySlotAtPoint(rScreenPt);
@@ -304,16 +323,16 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 				retVal = true; // Click absorbed by pod
 			}
 		}
-		else if (potentialDraggable)
-		{ // 3. Check Actors in Current Room (use pre-computed potentialDraggable)
-			clickedActor = potentialDraggable;
+		else if (potentialActor)
+		{ // 3. Check Actors in Current Room (use pre-computed potentialActor)
+			clickedActor = potentialActor;
 			clickStartPos = rScreenPt;
 			retVal = true;
 		}
 	}
-	else if (potentialDraggable)
-	{ // 3. Check Actors in Current Room (use pre-computed potentialDraggable)
-		clickedActor = potentialDraggable;
+	else if (potentialActor)
+	{ // 3. Check Actors in Current Room (use pre-computed potentialActor)
+		clickedActor = potentialActor;
 		clickStartPos = rScreenPt;
 		retVal = true;
 	}
@@ -331,7 +350,7 @@ void World::handleMouseMove(const f32Point& rScreenPt)
 		f32Rectangle podRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
 		f32 dpiScale = camera.getDpiScale();
 		f32Point iconPosInPod = f32Point(0, 0);
-		
+
 		if (inventoryPod.corner == PodCorner::TopRight)
 			iconPosInPod = f32Point(0, podRect.h - 48.0f); // Bottom-left of pod
 		else if (inventoryPod.corner == PodCorner::TopLeft)
@@ -340,11 +359,9 @@ void World::handleMouseMove(const f32Point& rScreenPt)
 			iconPosInPod = f32Point(podRect.w - 48.0f, 0); // Top-right
 		else
 			iconPosInPod = f32Point(0, 0); // Top-left
-		
+
 		f32Rectangle iconRectLogical(podRect.x + iconPosInPod.x, podRect.y + iconPosInPod.y, 48.0f, 48.0f);
-		f32Rectangle iconRectPhysical(iconRectLogical.x * dpiScale, iconRectLogical.y * dpiScale, iconRectLogical.w * dpiScale, iconRectLogical.h * dpiScale);
-		
-		if (iconRectPhysical.contains(rScreenPt))
+		if (iconRectLogical.contains(rScreenPt))
 		{
 			podHoverTimer += 0.016f; // Approximate 60fps
 			if (podHoverTimer >= podAutoExpandDelay && !inventoryPod.isExpanded)
@@ -367,12 +384,11 @@ void World::handleMouseMove(const f32Point& rScreenPt)
 	if (clickedActor && !actorBeingDragged)
 	{
 		f32 distMoved = clickStartPos.distance(rScreenPt);
-		if (distMoved > dragThreshold)
+		if (distMoved > dragThreshold && clickedActor->isDraggable())
 		{ // Threshold exceeded, start dragging
 			actorBeingDragged = clickedActor;
 			draggedFromInventory = false; // Actor is from room, not inventory
-			f32Point logicalClickPt = clickStartPos / camera.getDpiScale();
-			f32Point worldPt = camera.screenToWorld(logicalClickPt);
+		f32Point worldPt = camera.screenToWorld(clickStartPos);
 			dragOffset = actorBeingDragged->getPos() - worldPt;
 			std::string dragSnd = actorBeingDragged->props.get("soundItemDrag");
 			if (!dragSnd.empty())
@@ -392,11 +408,11 @@ void World::handleMouseMove(const f32Point& rScreenPt)
 				actorBeingDragged = item;
 				draggedFromInventory = true;
 				draggedFromInventorySlot = clickedInventorySlot;
-				
+
 				// For inventory drags, dragOffset is screen-based (item screen offset from mouse)
 				// We'll position the dragged item at the mouse cursor
 				dragOffset = f32Point(0, 0);
-				
+
 				// Restore original size when dragging out
 				auto it_size = inventoryOriginalSizes.find(item.get());
 				if (it_size != inventoryOriginalSizes.end())
@@ -404,9 +420,9 @@ void World::handleMouseMove(const f32Point& rScreenPt)
 					item->setSize(it_size->second.width, it_size->second.height);
 					inventoryOriginalSizes.erase(it_size);
 				}
-				
+
 				inventoryItems[clickedInventorySlot] = nullptr; // Remove from inventory slot
-				
+
 				std::string dragSnd = item->props.get("soundItemDrag");
 				if (!dragSnd.empty())
 					AudioEngine::instance().playSfx(dragSnd);
@@ -418,15 +434,21 @@ void World::handleMouseMove(const f32Point& rScreenPt)
 
 bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 {
-	mouseScreenPos = rScreenPt;
 	bool retVal = false;
+	if (!mousePressed)
+	{
+		return retVal;
+	}
+	mousePressed = false;
+
+	mouseScreenPos = rScreenPt;
 
 	// If we clicked an actor but didn't drag (threshold not exceeded), treat it as a tap
 	if (clickedActor && !actorBeingDragged)
 	{
 		retVal = clickedActor->onTap(numTaps);
 	}
-	
+
 	// Always clear clickedActor at the end
 	clickedActor = nullptr;
 
@@ -453,7 +475,7 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 		f32Rectangle podRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
 		f32 dpiScale = camera.getDpiScale();
 		f32Point iconPosInPod = f32Point(0, 0);
-		
+
 		if (inventoryPod.corner == PodCorner::TopRight)
 			iconPosInPod = f32Point(0, podRect.h - 48.0f);
 		else if (inventoryPod.corner == PodCorner::TopLeft)
@@ -462,29 +484,28 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 			iconPosInPod = f32Point(podRect.w - 48.0f, 0);
 		else
 			iconPosInPod = f32Point(0, 0);
-		
+
 		f32Rectangle iconRectLogical(podRect.x + iconPosInPod.x, podRect.y + iconPosInPod.y, 48.0f, 48.0f);
-		f32Rectangle iconRectPhysical(iconRectLogical.x * dpiScale, iconRectLogical.y * dpiScale, iconRectLogical.w * dpiScale, iconRectLogical.h * dpiScale);
-		bool droppedOnIcon = iconRectPhysical.contains(rScreenPt);
+		bool droppedOnIcon = iconRectLogical.contains(rScreenPt);
 
 		// Check if dropped into inventory (or on icon)
 		if (inventoryOpen || droppedOnIcon)
 		{
 			i32 slotIndex = findInventorySlotAtPoint(rScreenPt);
 			i32 maxSlots = inventoryPod.inventoryCols * inventoryPod.inventoryRows;
-			
+
 			// If dropped on icon or in a slot, place it there
 			if (droppedOnIcon || slotIndex >= 0)
 			{
 				i32 targetSlot = -1;
-				
+
 				if (!droppedOnIcon && slotIndex >= 0)
 				{
 					// Check if the slot at drop point is occupied
 					bool slotOccupied = false;
 					if (slotIndex < (i32)inventoryItems.size() && inventoryItems[slotIndex])
 						slotOccupied = true;
-					
+
 					if (slotOccupied)
 					{
 						// Slot occupied, find first available
@@ -523,7 +544,7 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 					{
 						inventoryItems.push_back(nullptr);
 					}
-					
+
 					// Insert at the target slot
 					if ((i32)inventoryItems.size() == targetSlot)
 					{
@@ -533,12 +554,12 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 					{
 						inventoryItems[targetSlot] = dragged;
 					}
-					
+
 					// Store original size and resize to fit inventory cell
 					inventoryOriginalSizes[dragged.get()] = f32Size(dragged->getWidth(), dragged->getHeight());
 					f32 cellSize = 48.0f; // inventory cell size
 					dragged->setSize(cellSize, cellSize);
-					
+
 					AudioEngine::instance().playSfx("sfxDrawer");
 					retVal = true;
 				}
@@ -552,8 +573,7 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 			if (!draggedFromInventory)
 			{
 				// Check if dropped onto another actor in current room
-				f32Point logicalDropPt = rScreenPt / camera.getDpiScale();
-				f32Point worldPt = camera.screenToWorld(logicalDropPt);
+				f32Point worldPt = camera.screenToWorld(rScreenPt);
 				for (uindex i = 0; (i < currentLocation->getActors().size()) && !retVal; ++i)
 				{
 					const auto& a = currentLocation->getActors()[i];
@@ -595,30 +615,14 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 			retVal = true;
 		}
 	}
-	else if (currentLocation && !camera.isTransitioning())
+	else if (!retVal && currentLocation && !camera.isTransitioning())
 	{ // Standard Tap / Click
-		f32Point logicalClickPt2 = rScreenPt / camera.getDpiScale();
-		f32Point worldPt = camera.screenToWorld(logicalClickPt2);
-
-		observer_ptr<Actor> closestActor = nullptr;
-		f32 minDist = 99999.0f;
-
-		for (const auto& a : currentLocation->getActors())
-		{
-			if (a && !a->isHidden() && !isItemInInventory(a.get()))
-			{
-				f32 dist = a->getPos().distance(worldPt);
-				f32 touchRadius = std::max(a->getWidth(), a->getHeight()) * 0.60f;
-				if (dist < touchRadius && dist < minDist)
-				{
-					minDist = dist;
-					closestActor = a.get();
-				}
-			}
-		}
+		observer_ptr<Actor> closestActor = findActorAtPoint(rScreenPt);
 
 		if (closestActor)
+		{
 			retVal = closestActor->onTap(numTaps);
+		}
 		else
 			hideNoteBubble();
 	}
@@ -665,7 +669,7 @@ void World::render(SDL_Renderer* pRenderer)
 				screenBounds.y *= dpiScale;
 				screenBounds.w *= dpiScale;
 				screenBounds.h *= dpiScale;
-				
+
 				if (a->isDrawBackground())
 					GlyphCache::instance().renderBlankBackground(screenBounds);
 				GlyphCache::instance().renderGlyph(a->getActiveGlyph(), screenBounds, a->getRotation(), a->isFlipHoriz(), a->isFlipVert());
@@ -682,7 +686,7 @@ void World::render(SDL_Renderer* pRenderer)
 	{ // 5. Draw Actor Being Dragged (Ceiling layer under mouse)
 		f32 w = actorBeingDragged->getWidth() * camera.getScale();
 		f32 h = actorBeingDragged->getHeight() * camera.getScale();
-		
+
 		f32Point dragPosLogical;
 		if (draggedFromInventory)
 		{
@@ -692,11 +696,10 @@ void World::render(SDL_Renderer* pRenderer)
 		else
 		{
 			// For world drags, dragOffset is in world space
-			f32Point logicalMousePos = mouseScreenPos / camera.getDpiScale();
-			f32Point dragPosWorld = camera.screenToWorld(logicalMousePos) + dragOffset;
+			f32Point dragPosWorld = camera.screenToWorld(mouseScreenPos) + dragOffset;
 			dragPosLogical = camera.worldToScreen(dragPosWorld);
 		}
-		
+
 		// Scale to physical pixels
 		f32Point dragPosScreen = dragPosLogical * dpiScale;
 		f32Rectangle dragBounds(dragPosScreen.x - w * dpiScale * 0.5f, dragPosScreen.y - h * dpiScale * 0.5f, w * dpiScale, h * dpiScale);
@@ -712,7 +715,6 @@ i32 World::findInventorySlotAtPoint(const f32Point& rScreenPt) const
 	if (!inventoryOpen || inventoryPod.inventoryCols <= 0 || inventoryPod.inventoryRows <= 0)
 		return -1;
 
-	f32 dpiScale = camera.getDpiScale();
 	f32Rectangle podRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
 	f32 slotSize = 44.0f;
 	f32 gap = 12.0f;
@@ -743,9 +745,9 @@ i32 World::findInventorySlotAtPoint(const f32Point& rScreenPt) const
 		for (i32 c = 0; c < inventoryPod.inventoryCols; ++c)
 		{
 			// Match the exact calculation used in Pod::render
-			f32 sx = (startX + c * (slotSize + gap)) * dpiScale;
-			f32 sy = (startY + r * (slotSize + gap)) * dpiScale;
-			f32Rectangle slotRect(sx, sy, slotSize * dpiScale, slotSize * dpiScale);
+			f32 sx = startX + c * (slotSize + gap);
+			f32 sy = startY + r * (slotSize + gap);
+			f32Rectangle slotRect(sx, sy, slotSize, slotSize);
 			if (slotRect.contains(rScreenPt))
 			{
 				return r * inventoryPod.inventoryCols + c;
@@ -818,10 +820,13 @@ void World::renderNoteBubble(SDL_Renderer* pRenderer)
 			roundedBoxRGBA(pRenderer, (i16)bubbleXPhys, (i16)bubbleYPhys, (i16)(bubbleXPhys + bubbleWPhys), (i16)(bubbleYPhys + bubbleHPhys), (i16)(20 * dpiScale), 240, 240, 245, 230);
 			roundedRectangleRGBA(pRenderer, (i16)bubbleXPhys, (i16)bubbleYPhys, (i16)(bubbleXPhys + bubbleWPhys), (i16)(bubbleYPhys + bubbleHPhys), (i16)(20 * dpiScale), 40, 40, 45, 255);
 
-			// Render text (use logical coordinates for text, it will be rendered at screen position)
-			f32Rectangle textRect(bubbleX + textPadding, bubbleY + textPadding, bubbleW - textPadding * 2.0f, bubbleH - textPadding * 2.0f);
+			f32Rectangle textRect(
+			    bubbleXPhys + textPadding * dpiScale,
+			    bubbleYPhys + textPadding * dpiScale,
+			    bubbleWPhys - textPadding * dpiScale * 2.0f,
+			    bubbleHPhys - textPadding * dpiScale * 2.0f);
 			Color textColor(40, 40, 45, 255);
-			FontEngine::instance().renderText(pRenderer, bubbleText, textRect, textColor, true);
+			FontEngine::instance().renderText(pRenderer, bubbleText, textRect, textColor, true, dpiScale);
 		}
 		else if (!glyphNotes.empty())
 		{ // Render glyphs with consistent rounded rectangle styling
@@ -857,5 +862,3 @@ void World::renderNoteBubble(SDL_Renderer* pRenderer)
 		}
 	}
 }
-
-

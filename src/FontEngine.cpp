@@ -91,7 +91,7 @@ void FontEngine::renderText(observer_ptr<SDL_Renderer> pRenderer, const std::str
 	}
 }
 
-void FontEngine::renderText(observer_ptr<SDL_Renderer> pRenderer, const std::string& rText, const f32Rectangle& rRect, const class Color& rColor, bool centered)
+void FontEngine::renderText(observer_ptr<SDL_Renderer> pRenderer, const std::string& rText, const f32Rectangle& rRect, const class Color& rColor, bool centered, f32 scale)
 {
 	bool canRender = _pFont && pRenderer && !rText.empty();
 
@@ -122,23 +122,25 @@ void FontEngine::renderText(observer_ptr<SDL_Renderer> pRenderer, const std::str
 			{
 				if (rLine.empty())
 				{
-					lineHeights.push_back((f32)lineHeight);
-					totalHeight += lineHeight;
+					f32 height = (f32)lineHeight * scale;
+					lineHeights.push_back(height);
+					totalHeight += height;
 				}
 				else
 				{
 					observer_ptr<SDL_Surface> pTestSurface(TTF_RenderText_Blended(_pFont.get(), rLine.c_str(), rLine.length(), color));
 					if (pTestSurface)
 					{
-						f32 h = (f32)pTestSurface->h;
+						f32 h = (f32)pTestSurface->h * scale;
 						lineHeights.push_back(h);
 						totalHeight += h;
 						SDL_DestroySurface(pTestSurface.get());
 					}
 					else
 					{
-						lineHeights.push_back((f32)lineHeight);
-						totalHeight += lineHeight;
+						f32 height = (f32)lineHeight * scale;
+						lineHeights.push_back(height);
+						totalHeight += height;
 					}
 				}
 			}
@@ -164,6 +166,8 @@ void FontEngine::renderText(observer_ptr<SDL_Renderer> pRenderer, const std::str
 					{
 						f32 w = 0.0f, h = 0.0f;
 						SDL_GetTextureSize(pTexture.get(), &w, &h);
+						w *= scale;
+						h *= scale;
 
 						f32 x = rRect.x;
 						if (centered)
