@@ -1,4 +1,14 @@
 #pragma once
+/*
+ * GlyphCache
+ *
+ * Singleton image and glyph resource service.  GlyphCache loads image assets,
+ * resolves FontAwesome icon glyph names, caches SDL textures, and renders
+ * glyphs or blank actor backgrounds into supplied destination rectangles.
+ *
+ * The asset root and current game bundle are set by the application or World
+ * before rendering.  Callers own the destination geometry and renderer lifetime.
+ */
 
 #include "pch.hpp"
 #include <SDL3/SDL.h>

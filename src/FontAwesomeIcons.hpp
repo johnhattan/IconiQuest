@@ -1,8 +1,16 @@
 #pragma once
+/*
+ * FontAwesomeIcons
+ *
+ * Generated, read-only name-to-codepoint table for Font Awesome glyph lookup.
+ * FontAwesome entries are consumed by GlyphCache when an actor or UI glyph
+ * name cannot be resolved as a regular image asset.
+ *
+ * Keep this generated mapping self-contained and do not add runtime asset
+ * loading or mutable state here.
+ */
 
-#include <unordered_map>
-#include <string>
-#include <cstdint>
+#include "pch.hpp"
 
 namespace FontAwesome
 {

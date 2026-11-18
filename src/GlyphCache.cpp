@@ -1,6 +1,6 @@
+#include "pch.hpp"
 #include "GlyphCache.hpp"
 #include "FontAwesomeIcons.hpp"
-#include "pch.hpp"
 #include <SDL3_ttf/SDL_ttf.h>
 
 GlyphCache& GlyphCache::instance()

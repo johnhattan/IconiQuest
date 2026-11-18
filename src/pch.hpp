@@ -1,4 +1,14 @@
 #pragma once
+/*
+ * Precompiled Header / Shared Foundation
+ *
+ * Canonical repository-wide foundation for STL containers, primitive numeric
+ * aliases, geometry and size/value types, pointer ownership conventions, and
+ * utility macros.  It is the first include in every C++ source/header file.
+ *
+ * Standard library dependencies belong here rather than in individual files.
+ * Third-party and project headers are included only after this foundation.
+ */
 
 // pch — foundational shared engine header (adapted from bom project)
 //

@@ -1,3 +1,4 @@
+#include "pch.hpp"
 #include "Animation.hpp"
 #include "AudioEngine.hpp"
 #include "FontEngine.hpp"
@@ -6,7 +7,6 @@
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
-#include "pch.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
@@ -64,6 +64,121 @@ namespace
 	{
 		auto assetsRoot = resolveAssetsRoot();
 		return (assetsRoot / "_default" / "fonts" / "SourceSansPro-Black.ttf").string();
+	}
+
+	void renderPropertyTable(const char* rLabel, const PropertyDictionary& rProps)
+	{
+		if (ImGui::CollapsingHeader(rLabel, ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			if (ImGui::BeginTable(rLabel, 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY))
+			{
+				ImGui::TableSetupColumn("Property");
+				ImGui::TableSetupColumn("Value");
+				ImGui::TableSetupColumn("State");
+				ImGui::TableHeadersRow();
+
+				for (const std::string& rKey : rProps.allKeys())
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::TextUnformatted(rKey.c_str());
+					ImGui::TableSetColumnIndex(1);
+					std::string value = rProps.get(rKey);
+					ImGui::TextUnformatted(value.c_str());
+					ImGui::TableSetColumnIndex(2);
+					bool hasDelta = rProps.getDeltas().find(rKey) != rProps.getDeltas().end();
+					ImGui::TextUnformatted(hasDelta ? "modified" : "original");
+				}
+
+				ImGui::EndTable();
+			}
+		}
+	}
+
+	void renderActorNode(observer_ptr<Actor> pActor, observer_ptr<Actor>& rSelectedActor)
+	{
+		if (pActor)
+		{
+			std::string label = pActor->getName();
+			if (pActor->isHidden())
+				label += " [hidden]";
+
+			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+			if (rSelectedActor == pActor)
+				flags |= ImGuiTreeNodeFlags_Selected;
+
+			if (ImGui::TreeNodeEx(pActor.get(), flags, "%s", label.c_str()))
+			{
+				if (ImGui::SmallButton("Select"))
+					rSelectedActor = pActor;
+
+				ImGui::Text("Position: %.1f, %.1f", pActor->getPos().x, pActor->getPos().y);
+				ImGui::Text("Size: %.1f x %.1f", pActor->getWidth(), pActor->getHeight());
+				ImGui::Text("Draggable: %s", pActor->isDraggable() ? "yes" : "no");
+				ImGui::Text("Glyph: %s", pActor->getActiveGlyph().c_str());
+
+				renderPropertyTable("Properties", pActor->props);
+				ImGui::TreePop();
+			}
+		}
+	}
+
+	void renderDebugWindow(World& rWorld, bool& rVisible)
+	{
+		static observer_ptr<Actor> selectedActor = nullptr;
+
+		ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f), ImGuiCond_Always);
+		ImGui::SetNextWindowSize(ImVec2(520.0f, 560.0f), ImGuiCond_Always);
+		ImGui::SetNextWindowCollapsed(false, ImGuiCond_Always);
+		if (ImGui::Begin("Debug", &rVisible, ImGuiWindowFlags_None))
+		{
+			observer_ptr<Location> pLocation = rWorld.getCurrentLocation();
+			if (pLocation)
+			{
+				ImGui::Text("Current Room: %s", pLocation->getName().c_str());
+				renderPropertyTable("World Properties", rWorld.props);
+
+				if (ImGui::CollapsingHeader("Actors in Current Room", ImGuiTreeNodeFlags_DefaultOpen))
+				{
+					for (const auto& pActor : pLocation->getActors())
+						renderActorNode(observer_ptr<Actor>(pActor.get()), selectedActor);
+				}
+			}
+			else
+			{
+				ImGui::TextUnformatted("Current Room: none");
+			}
+
+			if (ImGui::CollapsingHeader("Inventory", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::Text("Inventory Open: %s", rWorld.isInventoryOpen() ? "yes" : "no");
+				for (usize i = 0; i < rWorld.inventoryItems.size(); ++i)
+				{
+					observer_ptr<Actor> pActor = rWorld.inventoryItems[i];
+					if (pActor)
+					{
+						std::string slotLabel = "Slot " + std::to_string(i);
+						if (ImGui::TreeNode(slotLabel.c_str()))
+						{
+							renderActorNode(pActor, selectedActor);
+							ImGui::TreePop();
+						}
+					}
+					else
+					{
+						ImGui::TextDisabled("Slot %zu: empty", i);
+					}
+				}
+			}
+
+			if (selectedActor)
+			{
+				ImGui::Separator();
+				ImGui::Text("Selected Actor: %s", selectedActor->getName().c_str());
+				renderPropertyTable("Selected Properties", selectedActor->props);
+			}
+		}
+		ImGui::End();
 	}
 } // namespace
 
@@ -125,6 +240,7 @@ i32 main(i32 argc, char* argv[])
 				std::string defaultGame = "_default";
 				std::string currentGame = defaultGame;
 				bool headlessTest = false;
+				bool debugVisible = false;
 				for (i32 i = 1; i < argc; ++i)
 				{
 					std::string arg = argv[i];
@@ -135,6 +251,10 @@ i32 main(i32 argc, char* argv[])
 					else if (arg == "--dino")
 					{
 						currentGame = "dino";
+					}
+					else if (arg == "--debug")
+					{
+						debugVisible = true;
 					}
 					else if (arg == "--test")
 					{
@@ -311,7 +431,6 @@ i32 main(i32 argc, char* argv[])
 
 						u64 lastClickTime = 0;
 						const u64 doubleClickThresholdMs = 350;
-						
 						// Track mouse button state from previous frame for polling-based detection
 						SDL_MouseButtonFlags prevMouseState = 0;
 						f32 prevMouseX = 0.0f;
@@ -332,7 +451,9 @@ i32 main(i32 argc, char* argv[])
 								if (event.type == SDL_EVENT_QUIT)
 									running = false;
 								else if (event.type == SDL_EVENT_KEY_DOWN)
-								{ // deal with key events here
+								{
+									if (event.key.key == SDLK_GRAVE && !event.key.repeat)
+										debugVisible = !debugVisible;
 								}
 								else if (event.type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED || event.type == SDL_EVENT_WINDOW_RESIZED)
 								{
@@ -345,55 +466,41 @@ i32 main(i32 argc, char* argv[])
 									world.getCamera().setPhysicalViewportSize(f32Size((f32)renderWidth, (f32)renderHeight));
 								}
 
-								if (!io.WantCaptureMouse)
+								if (!io.WantCaptureMouse && event.type == SDL_EVENT_FINGER_DOWN)
 								{
-									if (event.type == SDL_EVENT_FINGER_DOWN)
+									i32 viewWidth, viewHeight;
+									SDL_GetWindowSize(window, &viewWidth, &viewHeight);
+									world.handleMouseDown({ event.tfinger.x * viewWidth, event.tfinger.y * viewHeight });
+								}
+								else if (!io.WantCaptureMouse && event.type == SDL_EVENT_FINGER_UP)
+								{
+									i32 viewWidth, viewHeight;
+									SDL_GetWindowSize(window, &viewWidth, &viewHeight);
+									u64 currentMs = SDL_GetTicks();
+									i32 taps = 1;
+									if (currentMs - lastClickTime <= doubleClickThresholdMs)
 									{
-										i32 viewWidth, viewHeight;
-										SDL_GetWindowSize(window, &viewWidth, &viewHeight);
-										f32 xPos = event.tfinger.x * viewWidth;
-										f32 yPos = event.tfinger.y * viewHeight;
-										world.handleMouseDown({ xPos, yPos });
+										taps = 2;
+										lastClickTime = 0;
 									}
-									else if (event.type == SDL_EVENT_FINGER_UP)
-									{
-										i32 viewWidth, viewHeight;
-										SDL_GetWindowSize(window, &viewWidth, &viewHeight);
-										f32 xPos = event.tfinger.x * viewWidth;
-										f32 yPos = event.tfinger.y * viewHeight;
-
-										u64 currentMs = SDL_GetTicks();
-										i32 taps = 1;
-										if (currentMs - lastClickTime <= doubleClickThresholdMs)
-										{
-											taps = 2;
-											lastClickTime = 0;
-										}
-										else
-											lastClickTime = currentMs;
-
-										world.handleMouseUp({ xPos, yPos }, taps);
-									}
-									else if (event.type == SDL_EVENT_MOUSE_MOTION)
-									{
-										world.handleMouseMove({ (f32)event.motion.x, (f32)event.motion.y });
-									}
+									else
+										lastClickTime = currentMs;
+									world.handleMouseUp({ event.tfinger.x * viewWidth, event.tfinger.y * viewHeight }, taps);
 								}
 							}
 
 							// Fallback: Poll mouse button state directly in case events aren't being generated
 							float currMouseX, currMouseY;
 							SDL_MouseButtonFlags currMouseState = SDL_GetMouseState(&currMouseX, &currMouseY);
+
+							SDL_MouseButtonFlags leftButtonPressed = currMouseState & SDL_BUTTON_LMASK;
+							SDL_MouseButtonFlags leftButtonWasPressed = prevMouseState & SDL_BUTTON_LMASK;
 							
 							if (!io.WantCaptureMouse)
 							{
 								if (currMouseX != prevMouseX || currMouseY != prevMouseY)
 									world.handleMouseMove({ currMouseX, currMouseY });
 
-								// Check for button press (transition from not pressed to pressed)
-								SDL_MouseButtonFlags leftButtonPressed = currMouseState & SDL_BUTTON_LMASK;
-								SDL_MouseButtonFlags leftButtonWasPressed = prevMouseState & SDL_BUTTON_LMASK;
-								
 								if (leftButtonPressed && !leftButtonWasPressed)
 									world.handleMouseDown({ currMouseX, currMouseY });
 								else if (!leftButtonPressed && leftButtonWasPressed)
@@ -410,7 +517,7 @@ i32 main(i32 argc, char* argv[])
 									world.handleMouseUp({ currMouseX, currMouseY }, taps);
 								}
 							}
-							
+
 							prevMouseState = currMouseState;
 							prevMouseX = currMouseX;
 							prevMouseY = currMouseY;
@@ -424,9 +531,11 @@ i32 main(i32 argc, char* argv[])
 							ImGui_ImplSDL3_NewFrame();
 							ImGui::NewFrame();
 
+							if (debugVisible)
+								renderDebugWindow(world, debugVisible);
+
 							ImGui::Render();
 							ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
-
 							SDL_RenderPresent(renderer);
 						}
 

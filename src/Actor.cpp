@@ -1,10 +1,10 @@
+#include "pch.hpp"
 #include "Actor.hpp"
 #include "Animation.hpp"
 #include "AudioEngine.hpp"
 #include "GlyphCache.hpp"
 #include "Location.hpp"
 #include "World.hpp"
-#include "pch.hpp"
 
 Actor::Actor(const std::string& rName, observer_ptr<Location> pLocation, const f32Point& rPos, const f32Size& rSize) :
     name(rName),

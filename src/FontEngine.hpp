@@ -1,4 +1,15 @@
 #pragma once
+/*
+ * FontEngine
+ *
+ * Singleton text rendering service backed by SDL_ttf.  It loads the UI font,
+ * renders wrapped or centered text into logical rectangles, and provides text
+ * dimensions for bubble and panel layout calculations.
+ *
+ * Optional render scaling is applied by callers and FontEngine for high-DPI
+ * output.  The service caches no public text state and should be shutdown with
+ * the rest of the SDL subsystem teardown.
+ */
 
 #include "pch.hpp"
 

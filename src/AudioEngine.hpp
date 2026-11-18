@@ -1,4 +1,14 @@
 #pragma once
+/*
+ * AudioEngine
+ *
+ * Singleton service for SDL_mixer sound effects and background themes.
+ * AudioEngine resolves repo-local sound assets, tracks the active game bundle,
+ * and owns the opaque mixer implementation through a private Impl structure.
+ *
+ * Call init() once after the asset root is known, setGameAssetsRoot() and
+ * setCurrentGame() before loading a game, and shutdown() during teardown.
+ */
 
 #include "pch.hpp"
 

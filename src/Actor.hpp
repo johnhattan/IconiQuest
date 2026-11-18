@@ -1,4 +1,15 @@
 #pragma once
+/*
+ * Actor
+ *
+ * Base runtime representation for an interactive map object.  Actor owns or
+ * carries transient size, position/property deltas, reveal/toggle behavior,
+ * drag state, and glyph rendering information while Location owns lifetime.
+ *
+ * Virtual onPlace(), onTap(), and onDrop() hooks allow map behavior to be
+ * expressed in TMX properties and implemented by location-specific logic.
+ * Pointer relationships to Location and World are observational, not owning.
+ */
 
 #include "pch.hpp"
 

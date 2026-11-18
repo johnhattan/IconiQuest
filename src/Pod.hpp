@@ -1,4 +1,16 @@
 #pragma once
+/*
+ * Pod
+ *
+ * Defines a corner-anchored, animated UI pod used for the settings and
+ * inventory interfaces.  Pod owns only presentation state and the animation
+ * between collapsed and expanded positions; it observes inventory item data
+ * owned by World and never owns those Actor objects.
+ *
+ * getPodRect() and onClick() share the logical viewport coordinate system.
+ * Rendering applies the caller-provided DPI scale to convert logical geometry
+ * into physical renderer pixels.
+ */
 
 #include "pch.hpp"
 #include <tweeny/tweeny.h>

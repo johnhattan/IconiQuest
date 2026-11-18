@@ -1,10 +1,21 @@
 #pragma once
+/*
+ * World
+ *
+ * Central game/session state coordinator.  World owns all loaded Locations,
+ * the active camera, pod UI state, inventory items, note-bubble state, and
+ * the currently clicked or dragged Actor references.
+ *
+ * World delegates location and actor behavior to Location/Actor, TMX loading
+ * to TmxLoader, resource lookup to the cache services, and mouse state
+ * transitions to its handleMouse* methods.
+ */
 
+#include "pch.hpp"
 #include "Actor.hpp"
 #include "Camera.hpp"
 #include "Location.hpp"
 #include "Pod.hpp"
-#include "pch.hpp"
 #include "SDL3_gfxPrimitives.h"
 
 struct World

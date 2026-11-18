@@ -1,10 +1,9 @@
+#include "pch.hpp"
 #include "World.hpp"
 #include "AudioEngine.hpp"
 #include "FontEngine.hpp"
 #include "GlyphCache.hpp"
 #include "TmxLoader.hpp"
-#include "pch.hpp"
-#include <iostream>
 
 World::World() : camera(800.0f, 600.0f), settingsPod(PodCorner::TopRight, 200.0f, 150.0f, "cog"), inventoryPod(PodCorner::BottomLeft, Pod::calculateInventoryWidth(4), Pod::calculateInventoryHeight(3), "backpack")
 {
@@ -268,59 +267,115 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 	bool retVal = false;
 	if (mousePressed)
 	{
-		return retVal;
 	}
-	mousePressed = true;
-
-	mouseScreenPos = rScreenPt;
-
-	// First, check if clicking on a draggable actor outside the inventory
-	// If so, don't let the pod close
-	observer_ptr<Actor> potentialActor =
-	    !camera.isTransitioning() ? findActorAtPoint(rScreenPt) : nullptr;
-
-	// 1. Check Pod clicks (but skip if an actor is underneath)
-	bool settingsPodHandled = false;
-	bool inventoryPodHandled = false;
-
-	if (!potentialActor)
+	else
 	{
-		f32Point logicalClickPt = rScreenPt;
-		settingsPodHandled = settingsPod.onClick(logicalClickPt, camera.getViewportWidth(), camera.getViewportHeight());
-		inventoryPodHandled = inventoryPod.onClick(logicalClickPt, camera.getViewportWidth(), camera.getViewportHeight());
-	}
+		mousePressed = true;
+		mouseScreenPos = rScreenPt;
 
-	if (inventoryPodHandled)
-	{
-		inventoryOpen = inventoryPod.isExpanded;
-		AudioEngine::instance().playSfx("sfxDrawer");
-		retVal = true;
-	}
+		// First, check if clicking on a draggable actor outside the inventory
+		observer_ptr<Actor> potentialActor =
+		    !camera.isTransitioning() ? findActorAtPoint(rScreenPt) : nullptr;
 
-	if (settingsPodHandled && !inventoryPodHandled)
-	{
-		AudioEngine::instance().playSfx("sfxDrawer");
-		retVal = true;
-	}
+		// 1. Check Pod clicks (but skip if an actor is underneath)
+		bool settingsPodHandled = false;
+		bool inventoryPodHandled = false;
 
-	if (!retVal && inventoryOpen)
-	{
-		// 2. Check if clicking inside open inventory pod
-		f32Rectangle podRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
-		if (podRect.contains(rScreenPt))
+		bool insideSettingsPod = settingsPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight()).contains(rScreenPt);
+		f32Rectangle inventoryPodRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
+		bool insideInventoryPod = inventoryPodRect.contains(rScreenPt);
+		if (!insideSettingsPod && !insideInventoryPod)
 		{
-			// Find which slot was clicked
+			settingsPod.isExpanded = false;
+			inventoryPod.isExpanded = false;
+			inventoryOpen = false;
+		}
+
+		bool inventoryInteriorClicked = inventoryOpen && inventoryPodRect.contains(rScreenPt);
+
+		f32Point inventoryIconPos(0, 0);
+		if (inventoryPod.corner == PodCorner::TopLeft)
+			inventoryIconPos = f32Point(inventoryPodRect.w - inventoryPod.iconSize, inventoryPodRect.h - inventoryPod.iconSize);
+		else if (inventoryPod.corner == PodCorner::TopRight)
+			inventoryIconPos = f32Point(0, inventoryPodRect.h - inventoryPod.iconSize);
+		else if (inventoryPod.corner == PodCorner::BottomLeft)
+			inventoryIconPos = f32Point(inventoryPodRect.w - inventoryPod.iconSize, 0);
+		else
+			inventoryIconPos = f32Point(0, 0);
+
+		f32Rectangle inventoryIconRect(
+		    inventoryPodRect.x + inventoryIconPos.x,
+		    inventoryPodRect.y + inventoryIconPos.y,
+		    inventoryPod.iconSize,
+		    inventoryPod.iconSize);
+		bool inventoryIconClicked = inventoryOpen && inventoryIconRect.contains(rScreenPt);
+
+		if (inventoryIconClicked)
+		{
+			inventoryPodHandled = inventoryPod.onClick(rScreenPt, camera.getViewportWidth(), camera.getViewportHeight());
+			inventoryOpen = inventoryPod.isExpanded;
+			retVal = true;
+		}
+		else if (inventoryInteriorClicked)
+		{
 			i32 slotIndex = findInventorySlotAtPoint(rScreenPt);
 			if (slotIndex >= 0 && slotIndex < (i32)inventoryItems.size() && inventoryItems[slotIndex])
 			{
-				// Clicked on an inventory item - track it for potential drag
 				clickedInventorySlot = slotIndex;
 				clickStartPos = rScreenPt;
 				retVal = true;
 			}
-			else if (!retVal)
+			else
 			{
-				retVal = true; // Click absorbed by pod
+				retVal = true;
+			}
+		}
+
+		if (!retVal && !potentialActor)
+		{
+			f32Point logicalClickPt = rScreenPt;
+			settingsPodHandled = settingsPod.onClick(logicalClickPt, camera.getViewportWidth(), camera.getViewportHeight());
+			inventoryPodHandled = inventoryPod.onClick(logicalClickPt, camera.getViewportWidth(), camera.getViewportHeight());
+		}
+
+		if (inventoryPodHandled)
+		{
+			inventoryOpen = inventoryPod.isExpanded;
+			AudioEngine::instance().playSfx("sfxDrawer");
+			retVal = true;
+		}
+
+		if (settingsPodHandled && !inventoryPodHandled)
+		{
+			AudioEngine::instance().playSfx("sfxDrawer");
+			retVal = true;
+		}
+
+		if (!retVal && inventoryOpen)
+		{
+			// 2. Check if clicking inside open inventory pod
+			f32Rectangle podRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
+			if (podRect.contains(rScreenPt))
+			{
+				// Find which slot was clicked
+				i32 slotIndex = findInventorySlotAtPoint(rScreenPt);
+				if (slotIndex >= 0 && slotIndex < (i32)inventoryItems.size() && inventoryItems[slotIndex])
+				{
+					// Clicked on an inventory item - track it for potential drag
+					clickedInventorySlot = slotIndex;
+					clickStartPos = rScreenPt;
+					retVal = true;
+				}
+				else if (!retVal)
+				{
+					retVal = true; // Click absorbed by pod
+				}
+			}
+			else if (potentialActor)
+			{ // 3. Check Actors in Current Room (use pre-computed potentialActor)
+				clickedActor = potentialActor;
+				clickStartPos = rScreenPt;
+				retVal = true;
 			}
 		}
 		else if (potentialActor)
@@ -329,12 +384,6 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 			clickStartPos = rScreenPt;
 			retVal = true;
 		}
-	}
-	else if (potentialActor)
-	{ // 3. Check Actors in Current Room (use pre-computed potentialActor)
-		clickedActor = potentialActor;
-		clickStartPos = rScreenPt;
-		retVal = true;
 	}
 
 	return retVal;
@@ -388,7 +437,7 @@ void World::handleMouseMove(const f32Point& rScreenPt)
 		{ // Threshold exceeded, start dragging
 			actorBeingDragged = clickedActor;
 			draggedFromInventory = false; // Actor is from room, not inventory
-		f32Point worldPt = camera.screenToWorld(clickStartPos);
+			f32Point worldPt = camera.screenToWorld(clickStartPos);
 			dragOffset = actorBeingDragged->getPos() - worldPt;
 			std::string dragSnd = actorBeingDragged->props.get("soundItemDrag");
 			if (!dragSnd.empty())
@@ -418,7 +467,6 @@ void World::handleMouseMove(const f32Point& rScreenPt)
 				if (it_size != inventoryOriginalSizes.end())
 				{
 					item->setSize(it_size->second.width, it_size->second.height);
-					inventoryOriginalSizes.erase(it_size);
 				}
 
 				inventoryItems[clickedInventorySlot] = nullptr; // Remove from inventory slot
@@ -437,140 +485,135 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 	bool retVal = false;
 	if (!mousePressed)
 	{
-		return retVal;
 	}
-	mousePressed = false;
-
-	mouseScreenPos = rScreenPt;
-
-	// If we clicked an actor but didn't drag (threshold not exceeded), treat it as a tap
-	if (clickedActor && !actorBeingDragged)
+	else
 	{
-		retVal = clickedActor->onTap(numTaps);
-	}
+		mousePressed = false;
 
-	// Always clear clickedActor at the end
-	clickedActor = nullptr;
+		mouseScreenPos = rScreenPt;
 
-	// If we clicked an inventory item but didn't drag, treat it as a tap
-	if (clickedInventorySlot >= 0 && !actorBeingDragged)
-	{
-		// Item was clicked but not dragged far enough - call onTap
-		if (clickedInventorySlot < (i32)inventoryItems.size() && inventoryItems[clickedInventorySlot])
+		// If we clicked an actor but didn't drag (threshold not exceeded), treat it as a tap
+		if (clickedActor && !actorBeingDragged)
 		{
-			// Item is still in its slot (wasn't started to be dragged)
-			observer_ptr<Actor> item = inventoryItems[clickedInventorySlot];
-			retVal = item->onTap(numTaps);
+			retVal = clickedActor->onTap(numTaps);
 		}
-		clickedInventorySlot = -1;
-	}
 
-	if (actorBeingDragged)
-	{ // If dragging an item, handle drop
-		observer_ptr<Actor> dragged = actorBeingDragged;
-		actorBeingDragged = nullptr;
-		podHoverTimer = 0.0f;
+		// Always clear clickedActor at the end
+		clickedActor = nullptr;
 
-		// Check if dropped over inventory pod icon (even if retracted)
-		f32Rectangle podRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
-		f32 dpiScale = camera.getDpiScale();
-		f32Point iconPosInPod = f32Point(0, 0);
-
-		if (inventoryPod.corner == PodCorner::TopRight)
-			iconPosInPod = f32Point(0, podRect.h - 48.0f);
-		else if (inventoryPod.corner == PodCorner::TopLeft)
-			iconPosInPod = f32Point(podRect.w - 48.0f, podRect.h - 48.0f);
-		else if (inventoryPod.corner == PodCorner::BottomLeft)
-			iconPosInPod = f32Point(podRect.w - 48.0f, 0);
-		else
-			iconPosInPod = f32Point(0, 0);
-
-		f32Rectangle iconRectLogical(podRect.x + iconPosInPod.x, podRect.y + iconPosInPod.y, 48.0f, 48.0f);
-		bool droppedOnIcon = iconRectLogical.contains(rScreenPt);
-
-		// Check if dropped into inventory (or on icon)
-		if (inventoryOpen || droppedOnIcon)
+		// If we clicked an inventory item but didn't drag, treat it as a tap
+		if (clickedInventorySlot >= 0 && !actorBeingDragged)
 		{
-			i32 slotIndex = findInventorySlotAtPoint(rScreenPt);
-			i32 maxSlots = inventoryPod.inventoryCols * inventoryPod.inventoryRows;
-
-			// If dropped on icon or in a slot, place it there
-			if (droppedOnIcon || slotIndex >= 0)
+			// Item was clicked but not dragged far enough - call onTap
+			if (clickedInventorySlot < (i32)inventoryItems.size() && inventoryItems[clickedInventorySlot])
 			{
-				i32 targetSlot = -1;
+				// Item is still in its slot (wasn't started to be dragged)
+				observer_ptr<Actor> item = inventoryItems[clickedInventorySlot];
+				retVal = item->onTap(numTaps);
+			}
+			clickedInventorySlot = -1;
+		}
 
-				if (!droppedOnIcon && slotIndex >= 0)
+		if (actorBeingDragged)
+		{ // If dragging an item, handle drop
+			observer_ptr<Actor> dragged = actorBeingDragged;
+			actorBeingDragged = nullptr;
+			podHoverTimer = 0.0f;
+
+			// Check if dropped over inventory pod icon (even if retracted)
+			f32Rectangle podRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
+			f32 dpiScale = camera.getDpiScale();
+			f32Point iconPosInPod = f32Point(0, 0);
+
+			if (inventoryPod.corner == PodCorner::TopRight)
+				iconPosInPod = f32Point(0, podRect.h - 48.0f);
+			else if (inventoryPod.corner == PodCorner::TopLeft)
+				iconPosInPod = f32Point(podRect.w - 48.0f, podRect.h - 48.0f);
+			else if (inventoryPod.corner == PodCorner::BottomLeft)
+				iconPosInPod = f32Point(podRect.w - 48.0f, 0);
+			else
+				iconPosInPod = f32Point(0, 0);
+
+			f32Rectangle iconRectLogical(podRect.x + iconPosInPod.x, podRect.y + iconPosInPod.y, 48.0f, 48.0f);
+			bool droppedOnIcon = iconRectLogical.contains(rScreenPt);
+
+			// Check if dropped into inventory (or on icon)
+			if (inventoryOpen || droppedOnIcon)
+			{
+				i32 slotIndex = findInventorySlotAtPoint(rScreenPt);
+				i32 maxSlots = inventoryPod.inventoryCols * inventoryPod.inventoryRows;
+
+				// If dropped on icon or in a slot, place it there
+				if (droppedOnIcon || slotIndex >= 0)
 				{
-					// Check if the slot at drop point is occupied
-					bool slotOccupied = false;
-					if (slotIndex < (i32)inventoryItems.size() && inventoryItems[slotIndex])
-						slotOccupied = true;
+					i32 targetSlot = -1;
 
-					if (slotOccupied)
+					if (!droppedOnIcon && slotIndex >= 0)
 					{
-						// Slot occupied, find first available
+						// Check if the slot at drop point is occupied
+						bool slotOccupied = false;
+						if (slotIndex < (i32)inventoryItems.size() && inventoryItems[slotIndex])
+							slotOccupied = true;
+
+						if (slotOccupied)
+						{
+							// Slot occupied, find first available
+							for (i32 i = 0; i < maxSlots; ++i)
+							{
+								if (targetSlot < 0 && (i >= (i32)inventoryItems.size() || !inventoryItems[i]))
+								{
+									targetSlot = i;
+								}
+							}
+						}
+						else
+						{
+							// Slot is empty, use it
+							targetSlot = slotIndex;
+						}
+					}
+					else
+					{
+						// Dropped on icon, find first available slot
 						for (i32 i = 0; i < maxSlots; ++i)
 						{
-							if (i >= (i32)inventoryItems.size() || !inventoryItems[i])
+							if (targetSlot < 0 && (i >= (i32)inventoryItems.size() || !inventoryItems[i]))
 							{
 								targetSlot = i;
-								break;
 							}
 						}
 					}
-					else
+
+					if (targetSlot >= 0 && targetSlot < maxSlots)
 					{
-						// Slot is empty, use it
-						targetSlot = slotIndex;
-					}
-				}
-				else
-				{
-					// Dropped on icon, find first available slot
-					for (i32 i = 0; i < maxSlots; ++i)
-					{
-						if (i >= (i32)inventoryItems.size() || !inventoryItems[i])
+						// Pad with nullptrs if needed to reach target slot
+						while ((i32)inventoryItems.size() < targetSlot)
 						{
-							targetSlot = i;
-							break;
+							inventoryItems.push_back(nullptr);
 						}
-					}
-				}
 
-				if (targetSlot >= 0 && targetSlot < maxSlots)
-				{
-					// Pad with nullptrs if needed to reach target slot
-					while ((i32)inventoryItems.size() < targetSlot)
-					{
-						inventoryItems.push_back(nullptr);
-					}
+						// Insert at the target slot
+						if ((i32)inventoryItems.size() == targetSlot)
+						{
+							inventoryItems.push_back(dragged);
+						}
+						else
+						{
+							inventoryItems[targetSlot] = dragged;
+						}
 
-					// Insert at the target slot
-					if ((i32)inventoryItems.size() == targetSlot)
-					{
-						inventoryItems.push_back(dragged);
-					}
-					else
-					{
-						inventoryItems[targetSlot] = dragged;
-					}
+						// Store original size and resize to fit inventory cell
+						inventoryOriginalSizes[dragged.get()] = f32Size(dragged->getWidth(), dragged->getHeight());
+						f32 cellSize = 48.0f; // inventory cell size
+						dragged->setSize(cellSize, cellSize);
 
-					// Store original size and resize to fit inventory cell
-					inventoryOriginalSizes[dragged.get()] = f32Size(dragged->getWidth(), dragged->getHeight());
-					f32 cellSize = 48.0f; // inventory cell size
-					dragged->setSize(cellSize, cellSize);
-
-					AudioEngine::instance().playSfx("sfxDrawer");
-					retVal = true;
+						AudioEngine::instance().playSfx("sfxDrawer");
+						retVal = true;
+					}
 				}
 			}
-		}
 
-		if (!retVal && currentLocation)
-		{
-			// Only check for drops on actors if NOT dragging from inventory
-			// Items from inventory should only go back to inventory, not to world locations
-			if (!draggedFromInventory)
+			if (!retVal && currentLocation)
 			{
 				// Check if dropped onto another actor in current room
 				f32Point worldPt = camera.screenToWorld(rScreenPt);
@@ -589,42 +632,42 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 					}
 				}
 			}
-		}
 
-		if (!retVal)
-		{
-			// Drop failed: snap back to inventory
-			if (draggedFromInventory)
+			if (!retVal)
 			{
-				// Put item back in inventory at the slot it came from
-				if (draggedFromInventorySlot >= 0 && draggedFromInventorySlot < (i32)inventoryItems.size())
+				// Drop failed: snap back to inventory
+				if (draggedFromInventory)
 				{
-					inventoryItems[draggedFromInventorySlot] = dragged;
-					// Resize back to cell size
-					f32 cellSize = 48.0f;
-					dragged->setSize(cellSize, cellSize);
+					// Put item back in inventory at the slot it came from
+					if (draggedFromInventorySlot >= 0 && draggedFromInventorySlot < (i32)inventoryItems.size())
+					{
+						inventoryItems[draggedFromInventorySlot] = dragged;
+						// Resize back to cell size
+						f32 cellSize = 48.0f;
+						dragged->setSize(cellSize, cellSize);
+					}
+					draggedFromInventory = false;
+					draggedFromInventorySlot = -1;
 				}
-				draggedFromInventory = false;
-				draggedFromInventorySlot = -1;
+				else
+				{
+					// Was in world, snap back to original position
+					dragged->setPos(dragged->getOrgPos());
+				}
+				retVal = true;
+			}
+		}
+		else if (!retVal && currentLocation && !camera.isTransitioning())
+		{ // Standard Tap / Click
+			observer_ptr<Actor> closestActor = findActorAtPoint(rScreenPt);
+
+			if (closestActor)
+			{
+				retVal = closestActor->onTap(numTaps);
 			}
 			else
-			{
-				// Was in world, snap back to original position
-				dragged->setPos(dragged->getOrgPos());
-			}
-			retVal = true;
+				hideNoteBubble();
 		}
-	}
-	else if (!retVal && currentLocation && !camera.isTransitioning())
-	{ // Standard Tap / Click
-		observer_ptr<Actor> closestActor = findActorAtPoint(rScreenPt);
-
-		if (closestActor)
-		{
-			retVal = closestActor->onTap(numTaps);
-		}
-		else
-			hideNoteBubble();
 	}
 
 	return retVal;
@@ -712,50 +755,35 @@ void World::render(SDL_Renderer* pRenderer)
 
 i32 World::findInventorySlotAtPoint(const f32Point& rScreenPt) const
 {
-	if (!inventoryOpen || inventoryPod.inventoryCols <= 0 || inventoryPod.inventoryRows <= 0)
-		return -1;
+	i32 retVal = -1;
+	if (inventoryOpen && inventoryPod.inventoryCols > 0 && inventoryPod.inventoryRows > 0)
+	{
+		f32Rectangle podRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
+		f32 slotSize = 44.0f;
+		f32 gap = 12.0f;
+		f32 padding = 16.0f;
+		f32 startX = podRect.x + padding;
+		f32 startY = podRect.y + padding;
 
-	f32Rectangle podRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
-	f32 slotSize = 44.0f;
-	f32 gap = 12.0f;
-	f32 padding = 16.0f;
-	f32 startX = podRect.x + padding;
-	f32 startY = podRect.y + padding;
-
-	// Adjust start position based on corner to match Pod::render layout
-	if (inventoryPod.corner == PodCorner::TopRight || inventoryPod.corner == PodCorner::BottomRight)
-	{
-		// Icon is on the left, inventory grid starts after it
-		startX = podRect.x + inventoryPod.iconSize + gap;
-	}
-	else if (inventoryPod.corner == PodCorner::BottomLeft)
-	{
-		// Icon is on the left for BottomLeft too
-		startX = podRect.x + inventoryPod.iconSize + gap;
-	}
-	else if (inventoryPod.corner == PodCorner::TopLeft)
-	{
-		// Icon is at bottom-right for TopLeft, inventory starts at top-left
-		// No offset needed
-	}
-
-	// Check which slot the point is in (must match Pod::render calculations exactly)
-	for (i32 r = 0; r < inventoryPod.inventoryRows; ++r)
-	{
-		for (i32 c = 0; c < inventoryPod.inventoryCols; ++c)
+		if (inventoryPod.corner == PodCorner::TopRight || inventoryPod.corner == PodCorner::BottomRight)
 		{
-			// Match the exact calculation used in Pod::render
-			f32 sx = startX + c * (slotSize + gap);
-			f32 sy = startY + r * (slotSize + gap);
-			f32Rectangle slotRect(sx, sy, slotSize, slotSize);
-			if (slotRect.contains(rScreenPt))
+			startX = podRect.x + inventoryPod.iconSize + gap;
+		}
+
+		for (i32 r = 0; r < inventoryPod.inventoryRows && retVal < 0; ++r)
+		{
+			for (i32 c = 0; c < inventoryPod.inventoryCols && retVal < 0; ++c)
 			{
-				return r * inventoryPod.inventoryCols + c;
+				f32 sx = startX + c * (slotSize + gap);
+				f32 sy = startY + r * (slotSize + gap);
+				f32Rectangle slotRect(sx, sy, slotSize, slotSize);
+				if (slotRect.contains(rScreenPt))
+					retVal = r * inventoryPod.inventoryCols + c;
 			}
 		}
 	}
 
-	return -1;
+	return retVal;
 }
 
 void World::renderNoteBubble(SDL_Renderer* pRenderer)

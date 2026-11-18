@@ -30,32 +30,27 @@ f32 Pod::calculateInventoryHeight(i32 rows)
 void Pod::update(f32 dt)
 {
 	f32 targetProgress = isExpanded ? 1.0f : 0.0f;
-	
-	// Skip if already at target
-	if (animationProgress == targetProgress)
-		return;
-	
-	f32 direction = targetProgress > animationProgress ? 1.0f : -1.0f;
-	f32 changeRate = dt / animationDuration;
+	if (animationProgress != targetProgress)
+	{
+		f32 direction = targetProgress > animationProgress ? 1.0f : -1.0f;
+		f32 changeRate = dt / animationDuration;
+		f32 newProgress = animationProgress + direction * changeRate;
+		animationProgress = std::clamp(newProgress, 0.0f, 1.0f);
 
-	f32 newProgress = animationProgress + direction * changeRate;
-	animationProgress = std::clamp(newProgress, 0.0f, 1.0f);
-	
-	// Lock to target when reached
-	if (animationProgress == targetProgress)
-		animationProgress = targetProgress;
+		if (animationProgress == targetProgress)
+			animationProgress = targetProgress;
+	}
 }
 
 void Pod::render(SDL_Renderer* pRenderer, f32 viewportWidth, f32 viewportHeight, f32 dpiScale)
 {
 	bool canRender = pRenderer;
-	if (!canRender)
-		return;
+	if (canRender)
+	{
+		f32Rectangle podRect = getPodRect(viewportWidth, viewportHeight);
 
-	f32Rectangle podRect = getPodRect(viewportWidth, viewportHeight);
-
-	// Draw pod background: light fill with dark outline
-	i16 x1 = (i16)(podRect.x * dpiScale);
+		// Draw pod background: light fill with dark outline
+		i16 x1 = (i16)(podRect.x * dpiScale);
 	i16 y1 = (i16)(podRect.y * dpiScale);
 	i16 x2 = (i16)((podRect.x + podRect.w) * dpiScale);
 	i16 y2 = (i16)((podRect.y + podRect.h) * dpiScale);
@@ -112,29 +107,30 @@ void Pod::render(SDL_Renderer* pRenderer, f32 viewportWidth, f32 viewportHeight,
 		
 		for (uindex i = 0; (i < pInventoryItems->size()) && (i32)(i / inventoryCols) < inventoryRows; ++i)
 		{
-			// Skip null slots (empty inventory cells)
-			if (!(*pInventoryItems)[i])
-				continue;
-			
-			i32 r = (i32)(i / inventoryCols);
-			i32 c = (i32)(i % inventoryCols);
-			f32 sx = (startX + c * (slotSize + gap)) * dpiScale;
-			f32 sy = (startY + r * (slotSize + gap)) * dpiScale;
-			f32Rectangle itemRect(sx, sy, slotSize * dpiScale, slotSize * dpiScale);
-			auto pActor = (*pInventoryItems)[i];
-			if (pActor && !pActor->isHidden())
+			if ((*pInventoryItems)[i])
 			{
-				if (pActor->isDrawBackground())
-					GlyphCache::instance().renderBlankBackground(itemRect, animationProgress);
-				GlyphCache::instance().renderGlyph(pActor->getActiveGlyph(), itemRect, pActor->getRotation(), pActor->isFlipHoriz(), pActor->isFlipVert(), animationProgress);
+				i32 r = (i32)(i / inventoryCols);
+				i32 c = (i32)(i % inventoryCols);
+				f32 sx = (startX + c * (slotSize + gap)) * dpiScale;
+				f32 sy = (startY + r * (slotSize + gap)) * dpiScale;
+				f32Rectangle itemRect(sx, sy, slotSize * dpiScale, slotSize * dpiScale);
+				auto pActor = (*pInventoryItems)[i];
+				if (pActor && !pActor->isHidden())
+				{
+					if (pActor->isDrawBackground())
+						GlyphCache::instance().renderBlankBackground(itemRect, animationProgress);
+					GlyphCache::instance().renderGlyph(pActor->getActiveGlyph(), itemRect, pActor->getRotation(), pActor->isFlipHoriz(), pActor->isFlipVert(), animationProgress);
+				}
 			}
 		}
 	}
+}
 }
 
 bool Pod::onClick(const f32Point& rScreenPt, f32 viewportWidth, f32 viewportHeight)
 {
 	f32Rectangle podRect = getPodRect(viewportWidth, viewportHeight);
+	bool retVal = false;
 
 	f32Point iconPosInPod = f32Point(0, 0);
 	if (corner == PodCorner::TopLeft)
@@ -154,22 +150,31 @@ bool Pod::onClick(const f32Point& rScreenPt, f32 viewportWidth, f32 viewportHeig
 	if (clickedOnIcon)
 	{
 		isExpanded = !isExpanded;
-		return true;
+		retVal = true;
 	}
-
-	bool wasExpanded = isExpanded;
-	if (isExpanded)
+	else
 	{
-		bool clickedInPod = rScreenPt.x >= podRect.x && rScreenPt.x < podRect.x + podRect.w && rScreenPt.y >= podRect.y && rScreenPt.y < podRect.y + podRect.h;
-
-		if (!clickedInPod)
+		bool wasExpanded = isExpanded;
+		if (isExpanded)
 		{
-			isExpanded = false;
-			return true;
+			bool clickedInPod = rScreenPt.x >= podRect.x && rScreenPt.x < podRect.x + podRect.w && rScreenPt.y >= podRect.y && rScreenPt.y < podRect.y + podRect.h;
+			if (!clickedInPod)
+			{
+				isExpanded = false;
+				retVal = true;
+			}
+			else
+			{
+				retVal = wasExpanded;
+			}
+		}
+		else
+		{
+			retVal = wasExpanded;
 		}
 	}
 
-	return wasExpanded;
+	return retVal;
 }
 
 f32Rectangle Pod::getPodRect(f32 viewportWidth, f32 viewportHeight) const

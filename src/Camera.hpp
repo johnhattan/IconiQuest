@@ -1,4 +1,15 @@
 #pragma once
+/*
+ * Camera
+ *
+ * Provides the world-to-screen and screen-to-world coordinate transforms used
+ * throughout rendering and pointer hit-testing.  It maintains logical and
+ * physical viewport sizes, so game logic can remain resolution-independent
+ * while Retina or high-DPI SDL render targets receive a separate scale.
+ *
+ * The camera can frame a location or world rectangle, with tweeny easing used
+ * for animated position and scale transitions.
+ */
 
 #include "pch.hpp"
 #include <tweeny/tweeny.h>
