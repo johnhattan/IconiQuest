@@ -20,7 +20,13 @@ struct World
 	Camera camera;
 	observer_ptr<Actor> actorBeingDragged;
 	f32Point dragOffset;
+	bool draggedFromInventory = false;
+	i32 draggedFromInventorySlot = -1;
 	f32Point mouseScreenPos;
+	observer_ptr<Actor> clickedActor;
+	i32 clickedInventorySlot = -1;
+	f32Point clickStartPos;
+	f32 dragThreshold = 10.0f;
 	observer_ptr<Actor> noteAnchorActor;
 	std::vector<std::string> activeNotes;
 	f32 noteTimer = 0.0f;
@@ -74,4 +80,5 @@ struct World
 
 private:
 	void renderNoteBubble(SDL_Renderer* pRenderer);
+	i32 findInventorySlotAtPoint(const f32Point& rScreenPt) const;
 };

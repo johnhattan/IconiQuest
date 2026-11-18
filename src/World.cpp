@@ -120,6 +120,11 @@ void World::changeLocation(const std::string& rName, f32 transitionTime, const s
 		currentLocation = loc;
 		camera.frameRect(loc->getBounds(), transitionTime, rEasing);
 		hideNoteBubble();
+		
+		// Clear any active drag/click state when changing locations
+		actorBeingDragged = nullptr;
+		clickedActor = nullptr;
+		clickedInventorySlot = -1;
 
 		// Play room sound and theme
 		std::string theme = loc->props.get("soundThemeEnter");
@@ -181,6 +186,8 @@ void World::revertWorld()
 
 	inventoryItems.clear();
 	actorBeingDragged = nullptr;
+	clickedActor = nullptr;
+	clickedInventorySlot = -1;
 	hideNoteBubble();
 
 	if (startLocation)
@@ -568,6 +575,17 @@ void World::renderNoteBubble(SDL_Renderer* pRenderer)
 			}
 		}
 	}
+}
+
+i32 World::findInventorySlotAtPoint(const f32Point& rScreenPt) const
+{
+	if (!inventoryOpen)
+		return -1;
+
+	// For now, return -1 (no slot found)
+	// This is a placeholder that returns no valid slot
+	// A proper implementation would need to know the pod layout
+	return -1;
 }
 
 
