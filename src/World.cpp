@@ -230,6 +230,7 @@ bool World::isItemInInventory(const observer_ptr<Actor> pActor) const
 
 bool World::handleMouseDown(const f32Point& rScreenPt)
 {
+	
 	mouseScreenPos = rScreenPt;
 	bool retVal = false;
 

@@ -78,8 +78,8 @@ i32 main(i32 argc, char* argv[])
 	}
 	else
 	{
-		i32 windowWidth = 960;
-		i32 windowHeight = 640;
+		i32 windowWidth = 800;
+		i32 windowHeight = 600;
 
 		SDL_Window* window = SDL_CreateWindow(
 		    "IconiQuest Engine (SDL3 + ImGui)",
@@ -94,6 +94,10 @@ i32 main(i32 argc, char* argv[])
 		}
 		else
 		{
+			// Try to set mouse focus
+			SDL_RaiseWindow(window);
+			SDL_SetWindowMouseGrab(window, false);  // Don't confine mouse, just track it
+			
 			SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
 			if (!renderer)
 			{
@@ -307,6 +311,10 @@ i32 main(i32 argc, char* argv[])
 
 						u64 lastClickTime = 0;
 						const u64 doubleClickThresholdMs = 350;
+						
+						// Track mouse button state from previous frame for polling-based detection
+						SDL_MouseButtonFlags prevMouseState = 0;
+						f32 prevMouseX = 0, prevMouseY = 0;
 
 						while (running)
 						{
@@ -314,6 +322,13 @@ i32 main(i32 argc, char* argv[])
 							f32 dt = std::chrono::duration<f32>(now - lastTime).count();
 							lastTime = now;
 							dt = std::min(dt, 0.1f);
+
+							// Log event constants at startup
+							static bool loggedConstants = false;
+							if (!loggedConstants)
+							{
+								loggedConstants = true;
+							}
 
 							SDL_Event event;
 							while (SDL_PollEvent(&event))
@@ -338,14 +353,50 @@ i32 main(i32 argc, char* argv[])
 
 								if (!io.WantCaptureMouse)
 								{
-									if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+									if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || event.type == SDL_EVENT_FINGER_DOWN)
 									{
-										if (event.button.button == SDL_BUTTON_LEFT)
-											world.handleMouseDown({ (f32)event.button.x, (f32)event.button.y });
+										f32 xPos = event.button.x;
+										f32 yPos = event.button.y;
+										bool shouldHandle = false;
+										
+										// Handle finger events (trackpad on macOS)
+										if (event.type == SDL_EVENT_FINGER_DOWN)
+										{
+											i32 viewWidth, viewHeight;
+											SDL_GetWindowSize(window, &viewWidth, &viewHeight);
+											xPos = event.tfinger.x * viewWidth;
+											yPos = event.tfinger.y * viewHeight;
+											shouldHandle = true;
+										}
+										else if (event.button.button == SDL_BUTTON_LEFT)
+										{
+											shouldHandle = true;
+										}
+										
+										if (shouldHandle)
+											world.handleMouseDown({ xPos, yPos });
 									}
-									else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+									else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP || event.type == SDL_EVENT_FINGER_UP)
 									{
-										if (event.button.button == SDL_BUTTON_LEFT)
+										f32 xPos = event.button.x;
+										f32 yPos = event.button.y;
+										bool shouldHandle = false;
+										
+										// Handle finger events (trackpad on macOS)
+										if (event.type == SDL_EVENT_FINGER_UP)
+										{
+											i32 viewWidth, viewHeight;
+											SDL_GetWindowSize(window, &viewWidth, &viewHeight);
+											xPos = event.tfinger.x * viewWidth;
+											yPos = event.tfinger.y * viewHeight;
+											shouldHandle = true;
+										}
+										else if (event.button.button == SDL_BUTTON_LEFT)
+										{
+											shouldHandle = true;
+										}
+										
+										if (shouldHandle)
 										{
 											u64 currentMs = SDL_GetTicks();
 											i32 taps = 1;
@@ -357,13 +408,46 @@ i32 main(i32 argc, char* argv[])
 											else
 												lastClickTime = currentMs;
 
-											world.handleMouseUp({ (f32)event.button.x, (f32)event.button.y }, taps);
+											world.handleMouseUp({ xPos, yPos }, taps);
 										}
 									}
 									else if (event.type == SDL_EVENT_MOUSE_MOTION)
+									{
 										world.handleMouseMove({ (f32)event.motion.x, (f32)event.motion.y });
+									}
 								}
 							}
+
+							// Fallback: Poll mouse button state directly in case events aren't being generated
+							float currMouseX, currMouseY;
+							SDL_MouseButtonFlags currMouseState = SDL_GetMouseState(&currMouseX, &currMouseY);
+							
+							if (!io.WantCaptureMouse)
+							{
+								// Check for button press (transition from not pressed to pressed)
+								SDL_MouseButtonFlags leftButtonPressed = currMouseState & SDL_BUTTON_LMASK;
+								SDL_MouseButtonFlags leftButtonWasPressed = prevMouseState & SDL_BUTTON_LMASK;
+								
+								if (leftButtonPressed && !leftButtonWasPressed)
+									world.handleMouseDown({ currMouseX, currMouseY });
+								else if (!leftButtonPressed && leftButtonWasPressed)
+								{
+									u64 currentMs = SDL_GetTicks();
+									i32 taps = 1;
+									if (currentMs - lastClickTime <= doubleClickThresholdMs)
+									{
+										taps = 2;
+										lastClickTime = 0;
+									}
+									else
+										lastClickTime = currentMs;
+									world.handleMouseUp({ currMouseX, currMouseY }, taps);
+								}
+							}
+							
+							prevMouseState = currMouseState;
+							prevMouseX = currMouseX;
+							prevMouseY = currMouseY;
 
 							AnimationManager::instance().update(dt);
 							world.update(dt);
