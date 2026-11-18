@@ -14,9 +14,7 @@ f32 Pod::calculateInventoryWidth(i32 cols)
 	f32 slotSize = 44.0f;
 	f32 gap = 12.0f;
 	f32 padding = 16.0f;
-	f32 iconSize = 48.0f;
-	// Icon takes up space on left, then gap, then inventory grid
-	return iconSize + gap + padding + (cols * slotSize) + ((cols - 1) * gap) + padding;
+	return padding + (cols * slotSize) + ((cols - 1) * gap) + padding;
 }
 
 f32 Pod::calculateInventoryHeight(i32 rows)
@@ -46,7 +44,7 @@ void Pod::update(f32 dt)
 		animationProgress = targetProgress;
 }
 
-void Pod::render(SDL_Renderer* pRenderer, f32 viewportWidth, f32 viewportHeight, f32 dpiScale)
+void Pod::render(SDL_Renderer* pRenderer, f32 viewportWidth, f32 viewportHeight)
 {
 	bool canRender = pRenderer;
 	if (!canRender)
@@ -55,11 +53,11 @@ void Pod::render(SDL_Renderer* pRenderer, f32 viewportWidth, f32 viewportHeight,
 	f32Rectangle podRect = getPodRect(viewportWidth, viewportHeight);
 
 	// Draw pod background: light fill with dark outline
-	i16 x1 = (i16)(podRect.x * dpiScale);
-	i16 y1 = (i16)(podRect.y * dpiScale);
-	i16 x2 = (i16)((podRect.x + podRect.w) * dpiScale);
-	i16 y2 = (i16)((podRect.y + podRect.h) * dpiScale);
-	i16 radius = (i16)(12 * dpiScale);
+	i16 x1 = (i16)podRect.x;
+	i16 y1 = (i16)podRect.y;
+	i16 x2 = (i16)(podRect.x + podRect.w);
+	i16 y2 = (i16)(podRect.y + podRect.h);
+	i16 radius = 12;
 	
 	// Light background fill
 	roundedBoxRGBA(pRenderer, x1, y1, x2, y2, radius, 220, 220, 225, 255);
@@ -80,54 +78,38 @@ void Pod::render(SDL_Renderer* pRenderer, f32 viewportWidth, f32 viewportHeight,
 	else
 		iconPosInPod = f32Point(0, 0); // Top-left
 
-	f32Point iconScreenPos((podRect.x + iconPosInPod.x) * dpiScale, (podRect.y + iconPosInPod.y) * dpiScale);
-	f32Rectangle iconRect(iconScreenPos.x, iconScreenPos.y, iconSize * dpiScale, iconSize * dpiScale);
+	f32Point iconScreenPos(podRect.x + iconPosInPod.x, podRect.y + iconPosInPod.y);
+	f32Rectangle iconRect(iconScreenPos.x, iconScreenPos.y, iconSize, iconSize);
 	GlyphCache::instance().renderGlyph(glyphName, iconRect);
 	
-	// Render inventory items while pod is visible (animationProgress > 0), not just when expanded
-	if (pInventoryItems && animationProgress > 0.01f && inventoryCols > 0 && inventoryRows > 0)
+	// Render inventory items if this is the inventory pod and it's expanded
+	if (pInventoryItems && isExpanded && animationProgress > 0.01f && inventoryCols > 0 && inventoryRows > 0)
 	{
 		f32 slotSize = 44.0f;
 		f32 gap = 12.0f;
-		f32 padding = 16.0f;
-		
-		// Calculate starting position based on corner
-		f32 startX = podRect.x + padding;
-		f32 startY = podRect.y + padding;
-		
-		// For corners where icon is on the left, start inventory after the icon
-		if (corner == PodCorner::TopRight || corner == PodCorner::BottomRight)
-			startX = podRect.x + iconSize + gap;
+		f32 startX = podRect.x + 16.0f;
+		f32 startY = podRect.y + 16.0f;
 		
 		for (i32 r = 0; r < inventoryRows; ++r)
 		{
 			for (i32 c = 0; c < inventoryCols; ++c)
 			{
-				f32 sx = (startX + c * (slotSize + gap)) * dpiScale;
-				f32 sy = (startY + r * (slotSize + gap)) * dpiScale;
-				f32Rectangle slotRect(sx, sy, slotSize * dpiScale, slotSize * dpiScale);
+				f32 sx = startX + c * (slotSize + gap);
+				f32 sy = startY + r * (slotSize + gap);
+				f32Rectangle slotRect(sx, sy, slotSize, slotSize);
 				GlyphCache::instance().renderGlyph("_podInventoryBlank", slotRect, 0.0f, false, false, animationProgress * 0.7f);
 			}
 		}
 		
 		for (uindex i = 0; (i < pInventoryItems->size()) && (i32)(i / inventoryCols) < inventoryRows; ++i)
 		{
-			// Skip null slots (empty inventory cells)
-			if (!(*pInventoryItems)[i])
-				continue;
-			
 			i32 r = (i32)(i / inventoryCols);
 			i32 c = (i32)(i % inventoryCols);
-			f32 sx = (startX + c * (slotSize + gap)) * dpiScale;
-			f32 sy = (startY + r * (slotSize + gap)) * dpiScale;
-			f32Rectangle itemRect(sx, sy, slotSize * dpiScale, slotSize * dpiScale);
-			auto pActor = (*pInventoryItems)[i];
-			if (pActor && !pActor->isHidden())
-			{
-				if (pActor->isDrawBackground())
-					GlyphCache::instance().renderBlankBackground(itemRect, animationProgress);
-				GlyphCache::instance().renderGlyph(pActor->getActiveGlyph(), itemRect, pActor->getRotation(), pActor->isFlipHoriz(), pActor->isFlipVert(), animationProgress);
-			}
+			f32 sx = startX + c * (slotSize + gap);
+			f32 sy = startY + r * (slotSize + gap);
+			f32Rectangle itemRect(sx, sy, slotSize, slotSize);
+			(*pInventoryItems)[i]->setPos({ sx + slotSize * 0.5f, sy + slotSize * 0.5f });
+			(*pInventoryItems)[i]->render(pRenderer, animationProgress);
 		}
 	}
 }

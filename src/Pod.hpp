@@ -37,13 +37,13 @@ struct Pod
 	Pod(PodCorner c, f32 w, f32 h, const std::string& rGlyph, const std::string& rEasing = "linear");
 
 	void update(f32 dt);
-	void render(SDL_Renderer* pRenderer, f32 viewportWidth, f32 viewportHeight, f32 dpiScale = 1.0f);
+	void render(SDL_Renderer* pRenderer, f32 viewportWidth, f32 viewportHeight);
 	bool onClick(const f32Point& rScreenPt, f32 viewportWidth, f32 viewportHeight);
-	f32Rectangle getPodRect(f32 viewportWidth, f32 viewportHeight) const;
 	
 	static f32 calculateInventoryWidth(i32 cols);
 	static f32 calculateInventoryHeight(i32 rows);
 
 private:
+	f32Rectangle getPodRect(f32 viewportWidth, f32 viewportHeight) const;
 	f32Point getCornerPosition(f32 viewportWidth, f32 viewportHeight) const;
 };
