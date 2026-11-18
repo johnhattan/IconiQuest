@@ -101,9 +101,12 @@ struct Camera
 	f32 getScale() const { return _curScale; }
 	f32Point getCenter() const { return _curPos; }
 	bool isTransitioning() const { return _isTransitioning; }
+	f32 getDpiScale() const { return _dpiScale; }
+	void setDpiScale(f32 scale) { _dpiScale = scale; }
 
 private:
 	f32Size _viewport = { 800.0f, 600.0f };
+	f32 _dpiScale = 1.0f;
 
 	f32Point _curPos;
 	f32 _curScale = 1.0f;

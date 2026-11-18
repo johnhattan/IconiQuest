@@ -268,7 +268,8 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 		}
 		else if (currentLocation && !camera.isTransitioning())
 		{ // 3. Check Actors in Current Room
-			f32Point worldPt = camera.screenToWorld(rScreenPt);
+			f32Point logicalPt = rScreenPt / camera.getDpiScale();
+			f32Point worldPt = camera.screenToWorld(logicalPt);
 
 			observer_ptr<Actor> closestDraggable = nullptr;
 			f32 minDist = 99999.0f;
@@ -300,7 +301,8 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 	}
 	else if (currentLocation && !camera.isTransitioning())
 	{ // 3. Check Actors in Current Room
-		f32Point worldPt = camera.screenToWorld(rScreenPt);
+		f32Point logicalPt = rScreenPt / camera.getDpiScale();
+		f32Point worldPt = camera.screenToWorld(logicalPt);
 
 		observer_ptr<Actor> closestDraggable = nullptr;
 		f32 minDist = 99999.0f;
@@ -366,7 +368,8 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 		if (!retVal && currentLocation)
 		{
 			// Check if dropped onto another actor in current room
-			f32Point worldPt = camera.screenToWorld(rScreenPt);
+			f32Point logicalDropPt = rScreenPt / camera.getDpiScale();
+			f32Point worldPt = camera.screenToWorld(logicalDropPt);
 			for (uindex i = 0; (i < currentLocation->getActors().size()) && !retVal; ++i)
 			{
 				const auto& a = currentLocation->getActors()[i];
@@ -391,7 +394,8 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 	}
 	else if (currentLocation && !camera.isTransitioning())
 	{ // Standard Tap / Click
-		f32Point worldPt = camera.screenToWorld(rScreenPt);
+		f32Point logicalClickPt = rScreenPt / camera.getDpiScale();
+		f32Point worldPt = camera.screenToWorld(logicalClickPt);
 
 		observer_ptr<Actor> closestActor = nullptr;
 		f32 minDist = 99999.0f;

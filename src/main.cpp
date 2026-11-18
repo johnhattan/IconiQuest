@@ -104,6 +104,9 @@ i32 main(i32 argc, char* argv[])
 			{
 				SDL_SetRenderVSync(renderer, 1);
 
+				// Get DPI scale for the window
+				f32 dpiScale = SDL_GetWindowDisplayScale(window);
+
 				IMGUI_CHECKVERSION();
 				ImGui::CreateContext();
 				ImGuiIO& io = ImGui::GetIO();
@@ -152,6 +155,7 @@ i32 main(i32 argc, char* argv[])
 
 				World world;
 				world.getCamera().setViewportSize(f32Size((f32)windowWidth, (f32)windowHeight));
+				world.getCamera().setDpiScale(dpiScale);
 				world.setGameAssetsRoot(assetsRoot.string());
 				world.setCurrentGame(currentGame);
 
