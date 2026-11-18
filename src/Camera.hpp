@@ -7,19 +7,29 @@
 struct Camera
 {
 	Camera(f32 viewportW = 800.0f, f32 viewportH = 600.0f) :
-	    _viewport(viewportW, viewportH),
+	    _logicalViewport(viewportW, viewportH),
+	    _physicalViewport(viewportW, viewportH),
 	    _easing(tweeny::easing::byName("cubicOut"))
 	{
 	}
 
 	void setViewportSize(const f32Size& rSize)
 	{
-		_viewport.width = rSize.width;
-		_viewport.height = rSize.height;
+		_logicalViewport.width = rSize.width;
+		_logicalViewport.height = rSize.height;
+		_physicalViewport = rSize;
 	}
 
-	f32 getViewportWidth() const { return _viewport.width; }
-	f32 getViewportHeight() const { return _viewport.height; }
+	void setPhysicalViewportSize(const f32Size& rSize)
+	{
+		_physicalViewport = rSize;
+	}
+
+	f32 getViewportWidth() const { return _logicalViewport.width; }
+	f32 getViewportHeight() const { return _logicalViewport.height; }
+	
+	f32 getPhysicalViewportWidth() const { return _physicalViewport.width; }
+	f32 getPhysicalViewportHeight() const { return _physicalViewport.height; }
 
 	void frameRect(const f32Rectangle& rTarget, f32 duration = 0.75f, const std::string& rEasing = "cubicOut")
 	{
@@ -28,9 +38,9 @@ struct Camera
 			_startPos = _curPos;
 			_startScale = _curScale;
 
-			// Scale to fit 90% of screen with margins
-			f32 scaleX = (_viewport.width * 0.90f) / rTarget.w;
-			f32 scaleY = (_viewport.height * 0.90f) / rTarget.h;
+			// Scale to fit 90% of screen with margins (use logical size for consistency)
+			f32 scaleX = (_logicalViewport.width * 0.90f) / rTarget.w;
+			f32 scaleY = (_logicalViewport.height * 0.90f) / rTarget.h;
 			_targetScale = std::min(scaleX, scaleY);
 			_targetPos = rTarget.center();
 
@@ -50,8 +60,8 @@ struct Camera
 	{
 		if (rTarget.w > 0.0f && rTarget.h > 0.0f)
 		{
-			f32 scaleX = (_viewport.width * 0.90f) / rTarget.w;
-			f32 scaleY = (_viewport.height * 0.90f) / rTarget.h;
+			f32 scaleX = (_logicalViewport.width * 0.90f) / rTarget.w;
+			f32 scaleY = (_logicalViewport.height * 0.90f) / rTarget.h;
 			_curScale = _targetScale = std::min(scaleX, scaleY);
 			f32Point c = rTarget.center();
 			_curPos = _targetPos = c;
@@ -84,12 +94,12 @@ struct Camera
 
 	f32Point worldToScreen(const f32Point& rWorldPt) const
 	{
-		return { (rWorldPt.x - _curPos.x) * _curScale + _viewport.width * 0.5f, (rWorldPt.y - _curPos.y) * _curScale + _viewport.height * 0.5f };
+		return { (rWorldPt.x - _curPos.x) * _curScale + _logicalViewport.width * 0.5f, (rWorldPt.y - _curPos.y) * _curScale + _logicalViewport.height * 0.5f };
 	}
 
 	f32Point screenToWorld(const f32Point& rScreenPt) const
 	{
-		return { (rScreenPt.x - _viewport.width * 0.5f) / _curScale + _curPos.x, (rScreenPt.y - _viewport.height * 0.5f) / _curScale + _curPos.y };
+		return { (rScreenPt.x - _logicalViewport.width * 0.5f) / _curScale + _curPos.x, (rScreenPt.y - _logicalViewport.height * 0.5f) / _curScale + _curPos.y };
 	}
 
 	f32Rectangle worldToScreenRect(const f32Rectangle& rRect) const
@@ -101,12 +111,17 @@ struct Camera
 	f32 getScale() const { return _curScale; }
 	f32Point getCenter() const { return _curPos; }
 	bool isTransitioning() const { return _isTransitioning; }
-	f32 getDpiScale() const { return _dpiScale; }
-	void setDpiScale(f32 scale) { _dpiScale = scale; }
+	
+	f32 getDpiScale() const 
+	{
+		if (_logicalViewport.width > 0.0f)
+			return _physicalViewport.width / _logicalViewport.width;
+		return 1.0f;
+	}
 
 private:
-	f32Size _viewport = { 800.0f, 600.0f };
-	f32 _dpiScale = 1.0f;
+	f32Size _logicalViewport = { 800.0f, 600.0f };
+	f32Size _physicalViewport = { 800.0f, 600.0f };
 
 	f32Point _curPos;
 	f32 _curScale = 1.0f;
