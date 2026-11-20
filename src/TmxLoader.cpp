@@ -94,6 +94,23 @@ bool TmxLoader::loadWorld(World& rWorld, const std::string& rTmxPath)
 						}
 					}
 
+					for (const auto& pRevealer : loc->getActors())
+					{
+						if (pRevealer)
+						{
+							for (const std::string& rTargetName : pRevealer->getAllRevealTargets())
+							{
+								observer_ptr<Actor> pTarget = loc->findActor(rTargetName);
+								if (pTarget)
+								{
+									f32Point offset = pTarget->getPos() - pRevealer->getPos();
+									pRevealer->props.setOrg("revealTargetDeltaX:" + rTargetName, std::to_string(offset.x));
+									pRevealer->props.setOrg("revealTargetDeltaY:" + rTargetName, std::to_string(offset.y));
+								}
+							}
+						}
+					}
+
 					rWorld.addLocation(std::move(loc));
 				}
 			}

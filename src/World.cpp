@@ -125,6 +125,7 @@ void World::changeLocation(const std::string& rName, f32 transitionTime, const s
 		actorBeingDragged = nullptr;
 		clickedActor = nullptr;
 		clickedInventorySlot = -1;
+		inventoryDragInProgress = false;
 
 		// Play room sound and theme
 		std::string theme = loc->props.get("soundThemeEnter");
@@ -188,6 +189,7 @@ void World::revertWorld()
 	actorBeingDragged = nullptr;
 	clickedActor = nullptr;
 	clickedInventorySlot = -1;
+	inventoryDragInProgress = false;
 	hideNoteBubble();
 
 	if (startLocation)
@@ -232,12 +234,15 @@ observer_ptr<Actor> World::findActorAtPoint(const f32Point& rScreenPt) const
 {
 	observer_ptr<Actor> retVal = nullptr;
 	f32 minDist = 99999.0f;
+	bool found = false;
 
 	if (currentLocation)
 	{
-		for (const auto& a : currentLocation->getActors())
+		const std::vector<std::unique_ptr<Actor>>& rActors = currentLocation->getActors();
+		for (usize i = rActors.size(); i > 0; --i)
 		{
-			if (a && !a->isHidden() && !isItemInInventory(a.get()))
+			const auto& a = rActors[i - 1];
+			if (!found && a && !a->isHidden() && !isItemInInventory(a.get()))
 			{
 				f32Rectangle screenBounds = camera.worldToScreenRect(a->getBounds());
 				const f32 touchPadding = 12.0f;
@@ -249,10 +254,11 @@ observer_ptr<Actor> World::findActorAtPoint(const f32Point& rScreenPt) const
 				{
 					f32Point screenCenter = screenBounds.center();
 					f32 dist = screenCenter.distance(rScreenPt);
-					if (dist < minDist)
+					if (!retVal || dist < minDist)
 					{
 						minDist = dist;
 						retVal = a.get();
+						found = true;
 					}
 				}
 			}
@@ -284,12 +290,6 @@ bool World::handleMouseDown(const f32Point& rScreenPt)
 		bool insideSettingsPod = settingsPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight()).contains(rScreenPt);
 		f32Rectangle inventoryPodRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
 		bool insideInventoryPod = inventoryPodRect.contains(rScreenPt);
-		if (!insideSettingsPod && !insideInventoryPod)
-		{
-			settingsPod.isExpanded = false;
-			inventoryPod.isExpanded = false;
-			inventoryOpen = false;
-		}
 
 		bool inventoryInteriorClicked = inventoryOpen && inventoryPodRect.contains(rScreenPt);
 
@@ -457,6 +457,7 @@ void World::handleMouseMove(const f32Point& rScreenPt)
 				actorBeingDragged = item;
 				draggedFromInventory = true;
 				draggedFromInventorySlot = clickedInventorySlot;
+				inventoryDragInProgress = true;
 
 				// For inventory drags, dragOffset is screen-based (item screen offset from mouse)
 				// We'll position the dragged item at the mouse cursor
@@ -492,6 +493,20 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 
 		mouseScreenPos = rScreenPt;
 
+		if (!inventoryDragInProgress)
+		{
+			f32Rectangle settingsRect = settingsPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
+			f32Rectangle inventoryRect = inventoryPod.getPodRect(camera.getViewportWidth(), camera.getViewportHeight());
+			bool insideSettingsPod = settingsRect.contains(rScreenPt);
+			bool insideInventoryPod = inventoryRect.contains(rScreenPt);
+			if (!insideSettingsPod && !insideInventoryPod)
+			{
+				settingsPod.isExpanded = false;
+				inventoryPod.isExpanded = false;
+				inventoryOpen = false;
+			}
+		}
+
 		// If we clicked an actor but didn't drag (threshold not exceeded), treat it as a tap
 		if (clickedActor && !actorBeingDragged)
 		{
@@ -517,6 +532,8 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 		if (actorBeingDragged)
 		{ // If dragging an item, handle drop
 			observer_ptr<Actor> dragged = actorBeingDragged;
+			bool draggedItemFromInventory = draggedFromInventory;
+			bool droppedIntoInventory = false;
 			actorBeingDragged = nullptr;
 			podHoverTimer = 0.0f;
 
@@ -602,13 +619,44 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 							inventoryItems[targetSlot] = dragged;
 						}
 
+						observer_ptr<Location> pDraggedLocation = dragged->getLocation();
+						if (pDraggedLocation)
+						{
+							for (const std::string& rTargetName : dragged->getAllRevealTargets())
+							{
+								observer_ptr<Actor> pTarget = pDraggedLocation->findActor(rTargetName);
+								if (pTarget)
+								{
+									pTarget->props.set("container", dragged->getName());
+									pTarget->props.set("location", "inventory");
+									pTarget->setHidden(true);
+								}
+							}
+
+							dragged->props.setBool("glyphWindupRevealed", false);
+							dragged->props.setBool("toggled", false);
+							dragged->setHidden(false);
+						}
+
+						observer_ptr<Actor> pBookshelf = pDraggedLocation ? pDraggedLocation->findActor("glyphBookshelf") : nullptr;
+						if (pBookshelf)
+						{
+							pBookshelf->props.setBool("glyphBookRevealed", false);
+							pBookshelf->props.setBool("toggled", false);
+							pBookshelf->onPlace();
+						}
+
 						// Store original size and resize to fit inventory cell
 						inventoryOriginalSizes[dragged.get()] = f32Size(dragged->getWidth(), dragged->getHeight());
 						f32 cellSize = 48.0f; // inventory cell size
 						dragged->setSize(cellSize, cellSize);
+						dragged->props.set("container", "inventory");
+						if (currentLocation)
+							dragged->props.set("location", currentLocation->getName());
 
 						AudioEngine::instance().playSfx("sfxDrawer");
 						retVal = true;
+						droppedIntoInventory = true;
 					}
 				}
 			}
@@ -636,7 +684,7 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 			if (!retVal)
 			{
 				// Drop failed: snap back to inventory
-				if (draggedFromInventory)
+				if (draggedItemFromInventory)
 				{
 					// Put item back in inventory at the slot it came from
 					if (draggedFromInventorySlot >= 0 && draggedFromInventorySlot < (i32)inventoryItems.size())
@@ -656,6 +704,21 @@ bool World::handleMouseUp(const f32Point& rScreenPt, i32 numTaps)
 				}
 				retVal = true;
 			}
+
+			if (draggedItemFromInventory)
+			{
+				if (droppedIntoInventory)
+				{
+					inventoryPod.isExpanded = true;
+					inventoryOpen = true;
+				}
+				else
+				{
+					inventoryPod.isExpanded = false;
+					inventoryOpen = false;
+				}
+			}
+			inventoryDragInProgress = false;
 		}
 		else if (!retVal && currentLocation && !camera.isTransitioning())
 		{ // Standard Tap / Click

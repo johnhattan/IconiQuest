@@ -16,6 +16,11 @@ Actor::Actor(const std::string& rName, observer_ptr<Location> pLocation, const f
 	props.setOrg("y", std::to_string(rPos.y));
 	props.setOrg("width", std::to_string(rSize.width));
 	props.setOrg("height", std::to_string(rSize.height));
+	if (pLocation)
+	{
+		props.setOrg("container", pLocation->getName());
+		props.setOrg("location", pLocation->getName());
+	}
 }
 
 f32Point Actor::getPos() const
@@ -182,7 +187,19 @@ void Actor::onPlace()
 			{
 				observer_ptr<World> world = pLocation->getWorld();
 				if (!world || !world->isItemInInventory(pTarget.get()))
+				{
 					pTarget->setHidden(!isAllRevealed);
+					if (isAllRevealed)
+					{
+						f32 parentDeltaX = pTarget->props.getFloat("parentRevealDeltaX", 0.0f);
+						f32 parentDeltaY = pTarget->props.getFloat("parentRevealDeltaY", 0.0f);
+						if (pTarget->props.has("parentRevealDeltaX") || pTarget->props.has("parentRevealDeltaY"))
+						{
+							f32Point revealedPos = getPos() + f32Point(parentDeltaX, parentDeltaY);
+							pTarget->setPos(revealedPos);
+						}
+					}
+				}
 			}
 		}
 
@@ -279,53 +296,67 @@ bool Actor::onTap(i32 numTaps)
 
 					if (canReveal)
 					{
-						bool revealLoop = props.getBool("revealLoop", true);
 						bool changed = false;
-
-						if (!reveals.empty())
-						{ // Non-sync: reveals all listed actors
+						if (props.getBool("toggleReveal", false))
+						{
 							for (const auto& targetName : reveals)
 							{
 								std::string key = targetName + "Revealed";
-								bool cur = props.getBool(key, false);
-								if (!cur || revealLoop)
-								{
-									props.flipBool(key, false);
-									changed = true;
-								}
+								bool currentlyRevealed = props.getBool(key, false);
+								props.setBool(key, !currentlyRevealed);
+								props.setBool("toggled", !currentlyRevealed);
+								changed = true;
 							}
 						}
-
-						// Sync reveals
-						if (!revealsSync.empty())
-						{
-							if (revealLoop)
+						else
+						{ // Non-sync: reveals all listed actors
+							bool revealLoop = props.getBool("revealLoop", true);
+							if (!reveals.empty())
 							{
-								bool stateFirst = props.getBool(revealsSync[0] + "Revealed", false);
-								for (uindex i = 1; i < revealsSync.size() && !changed; ++i)
+								for (const auto& targetName : reveals)
 								{
-									const auto& targetName = revealsSync[i];
-									if (props.getBool(targetName + "Revealed", false) != stateFirst)
+									std::string key = targetName + "Revealed";
+									bool cur = props.getBool(key, false);
+									if (!cur || revealLoop)
 									{
-										props.flipBool(targetName + "Revealed", false);
+										props.flipBool(key, false);
+										props.setBool("toggled", props.getBool(key, false));
 										changed = true;
 									}
 								}
-								if (!changed)
-								{
-									props.flipBool(revealsSync[0] + "Revealed", false);
-									changed = true;
-								}
 							}
-							else
+
+							// Sync reveals
+							if (!revealsSync.empty())
 							{
-								for (uindex i = 0; i < revealsSync.size() && !changed; ++i)
+								if (revealLoop)
 								{
-									const auto& targetName = revealsSync[i];
-									if (!props.getBool(targetName + "Revealed", false))
+									bool stateFirst = props.getBool(revealsSync[0] + "Revealed", false);
+									for (uindex i = 1; i < revealsSync.size() && !changed; ++i)
 									{
-										props.setBool(targetName + "Revealed", true);
+										const auto& targetName = revealsSync[i];
+										if (props.getBool(targetName + "Revealed", false) != stateFirst)
+										{
+											props.flipBool(targetName + "Revealed", false);
+											changed = true;
+										}
+									}
+									if (!changed)
+									{
+										props.flipBool(revealsSync[0] + "Revealed", false);
 										changed = true;
+									}
+								}
+								else
+								{
+									for (uindex i = 0; i < revealsSync.size() && !changed; ++i)
+									{
+										const auto& targetName = revealsSync[i];
+										if (!props.getBool(targetName + "Revealed", false))
+										{
+											props.setBool(targetName + "Revealed", true);
+											changed = true;
+										}
 									}
 								}
 							}
@@ -336,6 +367,11 @@ bool Actor::onTap(i32 numTaps)
 							std::string snd = props.get("soundReveal");
 							if (!snd.empty())
 								AudioEngine::instance().playSfx(snd);
+							bool anyTargetRevealed = false;
+							for (const auto& targetName : reveals)
+								if (props.getBool(targetName + "Revealed", false))
+									anyTargetRevealed = true;
+							props.setBool("revealed", anyTargetRevealed);
 							onPlace();
 							retVal = true;
 						}
@@ -423,9 +459,50 @@ bool Actor::onDrop(observer_ptr<Actor> pDroppedActor)
 		if (!trigger.empty() && pDroppedActor->getName() == trigger)
 		{
 			props.setBool("revealTriggered", true);
-			if (!props.getBool("revealTriggerKeep", false))
+			bool keepDroppedActor = props.getBool("revealTriggerKeep", false);
+			if (keepDroppedActor)
+			{
+				observer_ptr<Location> pOldLocation = pDroppedActor->getLocation();
+				pLocation->takeActor(pDroppedActor);
+				pDroppedActor->setPos(getPos());
 				pDroppedActor->setHidden(true);
-			onTap(1);
+				pDroppedActor->props.set("container", getName());
+				pDroppedActor->props.set("location", pLocation->getName());
+				props.setBool(pDroppedActor->getName() + "Revealed", false);
+				props.setBool("toggled", true);
+				for (const std::string& rTargetName : pDroppedActor->getAllRevealTargets())
+				{
+					observer_ptr<Actor> pTarget = pOldLocation ? pOldLocation->findActor(rTargetName) : nullptr;
+					if (pTarget)
+					{
+						pLocation->takeActor(pTarget);
+						f32Point parentPos = pDroppedActor->getPos();
+						f32 targetDeltaX = pDroppedActor->props.getFloat("revealTargetDeltaX:" + rTargetName,
+							pTarget->getPos().x - pDroppedActor->getPos().x);
+						f32 targetDeltaY = pDroppedActor->props.getFloat("revealTargetDeltaY:" + rTargetName,
+							pTarget->getPos().y - pDroppedActor->getPos().y);
+						f32Point revealOffset(targetDeltaX, targetDeltaY);
+						pTarget->props.setFloat("parentRevealDeltaX", revealOffset.x);
+						pTarget->props.setFloat("parentRevealDeltaY", revealOffset.y);
+						pTarget->setPos(parentPos);
+						pTarget->setHidden(true);
+						pTarget->props.set("container", pDroppedActor->getName());
+						pTarget->props.set("location", pLocation->getName());
+					}
+				}
+				onPlace();
+			}
+			else
+			{
+				pDroppedActor->setHidden(true);
+				pDroppedActor->props.set("container", "consumed");
+				pDroppedActor->props.set("location", "");
+				if (pDroppedActor->getLocation())
+					pDroppedActor->getLocation()->removeActor(pDroppedActor);
+				pDroppedActor->setLocation(nullptr);
+			}
+			if (!keepDroppedActor)
+				onTap(1);
 			retVal = true;
 		}
 
@@ -438,9 +515,49 @@ bool Actor::onDrop(observer_ptr<Actor> pDroppedActor)
 				if (pDroppedActor->getName() == trig)
 				{
 					props.setBool("toggleTriggered", true);
-					if (!props.getBool("toggleTriggerKeep", false))
+					bool keepDroppedActor = props.getBool("toggleTriggerKeep", false);
+					if (keepDroppedActor)
+					{
+						observer_ptr<Location> pOldLocation = pDroppedActor->getLocation();
+						pLocation->takeActor(pDroppedActor);
+						pDroppedActor->setPos(getPos());
 						pDroppedActor->setHidden(true);
-					onTap(1);
+						pDroppedActor->props.set("container", getName());
+						pDroppedActor->props.set("location", pLocation->getName());
+						props.setBool(pDroppedActor->getName() + "Revealed", false);
+						props.setBool("toggled", true);
+						for (const std::string& rTargetName : pDroppedActor->getAllRevealTargets())
+						{
+							observer_ptr<Actor> pTarget = pOldLocation ? pOldLocation->findActor(rTargetName) : nullptr;
+							if (pTarget)
+							{
+								pLocation->takeActor(pTarget);
+								f32Point parentPos = pDroppedActor->getPos();
+								f32 targetDeltaX = pDroppedActor->props.getFloat("revealTargetDeltaX:" + rTargetName,
+									pTarget->getPos().x - pDroppedActor->getPos().x);
+								f32 targetDeltaY = pDroppedActor->props.getFloat("revealTargetDeltaY:" + rTargetName,
+									pTarget->getPos().y - pDroppedActor->getPos().y);
+								pTarget->props.setFloat("parentRevealDeltaX", targetDeltaX);
+								pTarget->props.setFloat("parentRevealDeltaY", targetDeltaY);
+								pTarget->setPos(parentPos);
+								pTarget->setHidden(true);
+								pTarget->props.set("container", pDroppedActor->getName());
+								pTarget->props.set("location", pLocation->getName());
+							}
+						}
+						onPlace();
+					}
+					else
+					{
+						pDroppedActor->setHidden(true);
+						pDroppedActor->props.set("container", "consumed");
+						pDroppedActor->props.set("location", "");
+						if (pDroppedActor->getLocation())
+							pDroppedActor->getLocation()->removeActor(pDroppedActor);
+						pDroppedActor->setLocation(nullptr);
+					}
+					if (!keepDroppedActor)
+						onTap(1);
 					retVal = true;
 				}
 			}

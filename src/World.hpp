@@ -44,6 +44,7 @@ struct World
 	std::vector<std::string> activeNotes;
 	f32 noteTimer = 0.0f;
 	bool inventoryOpen = false;
+	bool inventoryDragInProgress = false;
 	std::vector<observer_ptr<Actor>> inventoryItems;
 	std::unordered_map<Actor*, f32Size> inventoryOriginalSizes;
 	Pod settingsPod;

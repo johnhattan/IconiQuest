@@ -399,22 +399,110 @@ i32 main(i32 argc, char* argv[])
 												else
 												{
 													std::cout << "[Test] Confirmed: glyphRug loops back and re-hides glyphKey." << std::endl;
-
-													std::cout << "[IconiQuest] Testing Dino map as well..." << std::endl;
-													World dinoWorld;
-													dinoWorld.setGameAssetsRoot(assetsRoot.string());
-													dinoWorld.setCurrentGame("dino");
-													std::string dinoMapPath = resolveMapPath("dino").string();
-													if (!dinoWorld.load(dinoMapPath, assetsRoot.string()))
+													observer_ptr<Location> part6 = world.findLocation("part6");
+													observer_ptr<Location> part3 = world.findLocation("part3");
+													if (!part6 || !part3)
 													{
-														std::cerr << "[IconiQuest] Failed to load dino map!" << std::endl;
+														std::cerr << "[Test Error] part6 or part3 not found for book drop test!" << std::endl;
 														retVal = 1;
 													}
 													else
 													{
-														std::cout << "[IconiQuest] Successfully loaded Dino map with " << dinoWorld.getLocations().size() << " locations!" << std::endl;
-														std::cout << "[IconiQuest] Headless test passed successfully!" << std::endl;
-														retVal = 0;
+														observer_ptr<Actor> book = part6->findActor("glyphBook");
+														observer_ptr<Actor> bookshelf = part3->findActor("glyphBookshelf");
+														if (!book || !bookshelf)
+														{
+															std::cerr << "[Test Error] glyphBook or glyphBookshelf not found!" << std::endl;
+															retVal = 1;
+														}
+														else
+														{
+															book->setHidden(false);
+															bool dropped = bookshelf->onDrop(book);
+															f32Point shelfPos = bookshelf->getPos();
+															if (!dropped)
+															{
+																std::cerr << "[Test Error] glyphBookshelf did not accept glyphBook!" << std::endl;
+																retVal = 1;
+															}
+															else if (book->getLocation() != part3)
+															{
+																std::cerr << "[Test Error] glyphBook was not re-parented to part3!" << std::endl;
+																retVal = 1;
+															}
+															else if (book->getPos().distance(shelfPos) > 0.01f)
+															{
+																std::cerr << "[Test Error] glyphBook was not placed on glyphBookshelf!" << std::endl;
+																retVal = 1;
+															}
+															else if (book->props.get("container") != "glyphBookshelf" ||
+															         book->props.get("location") != "part3")
+															{
+																std::cerr << "[Test Error] glyphBook ownership properties not updated!" << std::endl;
+																retVal = 1;
+															}
+															else if (!book->isHidden())
+															{
+																std::cerr << "[Test Error] glyphBook should remain hidden until glyphBookshelf is tapped!" << std::endl;
+																retVal = 1;
+															}
+															else
+															{
+																bookshelf->onTap(1);
+																if (book->isHidden())
+																{
+																	std::cerr << "[Test Error] glyphBook should be revealed after tapping glyphBookshelf!" << std::endl;
+																	retVal = 1;
+																}
+																else
+																{
+																	bookshelf->onTap(1);
+																	if (!book->isHidden())
+																	{
+																		std::cerr << "[Test Error] glyphBook should be hidden after tapping glyphBookshelf again!" << std::endl;
+																		retVal = 1;
+																	}
+																	else if (!bookshelf->props.getBool("toggled", false))
+																	{
+																		std::cout << "[Test] Confirmed: glyphBookshelf toggled state is updated." << std::endl;
+																	}
+																	else
+																	{
+																		bookshelf->onTap(1);
+																		book->onTap(1);
+																		observer_ptr<Actor> windup = part3->findActor("glyphWindup");
+																		if (!windup || windup->isHidden())
+																		{
+																			std::cerr << "[Test Error] glyphWindup should be revealed by tapping glyphBook!" << std::endl;
+																			retVal = 1;
+																		}
+																		else
+																			std::cout << "[Test] Confirmed: glyphBook and glyphWindup state is preserved." << std::endl;
+																	}
+																}
+
+																if (retVal == 0)
+																{
+
+																	std::cout << "[IconiQuest] Testing Dino map as well..." << std::endl;
+																	World dinoWorld;
+																	dinoWorld.setGameAssetsRoot(assetsRoot.string());
+																	dinoWorld.setCurrentGame("dino");
+																	std::string dinoMapPath = resolveMapPath("dino").string();
+																	if (!dinoWorld.load(dinoMapPath, assetsRoot.string()))
+																{
+																		std::cerr << "[IconiQuest] Failed to load dino map!" << std::endl;
+																		retVal = 1;
+																	}
+																	else
+																	{
+																		std::cout << "[IconiQuest] Successfully loaded Dino map with " << dinoWorld.getLocations().size() << " locations!" << std::endl;
+																		std::cout << "[IconiQuest] Headless test passed successfully!" << std::endl;
+																		retVal = 0;
+																	}
+																}
+															}
+														}
 													}
 												}
 											}
