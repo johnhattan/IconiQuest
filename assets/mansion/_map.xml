@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<game name="Mansion Mystery" version="1.0">
+	<world>
+		<location name="foyer" startup="true" x="0" y="0" w="800" h="600">
+			<glyph
+				name="foyer_bookshelf"
+				x="120" y="320"
+				w="120" h="180"
+				glyph="glyphBookshelf"
+				glyphToggled="glyphBookshelfToggled"
+				onDrop="place foyer_book on foyer_bookshelf; toggle foyer_bookshelf"
+				hidden="false" />
+
+			<item
+				name="foyer_table"
+				x="400" y="360"
+				w="180" h="100"
+				glyph="glyphTable"
+				onTap="reveal foyer_book"
+				hidden="false">
+				<item
+					name="foyer_book"
+					x="35" y="-95"
+					w="56" h="56"
+					glyph="glyphBook"
+					glyphRevealed="glyphBookRevealed"
+					onTap="reveal foyer_windup"
+					hidden="true">
+					<item
+						name="foyer_windup"
+						x="52" y="24"
+						w="32" h="32"
+						glyph="glyphWindup"
+						hidden="true" />
+				</item>
+			</item>
+
+			<glyph
+				name="foyer_door_to_library"
+				x="690" y="320"
+				w="96" h="180"
+				glyph="glyphDoor"
+				onTap="go library"
+				hidden="false" />
+
+			<glyph
+				name="foyer_inventory_slot"
+				x="400" y="120"
+				w="96" h="72"
+				glyph="glyphDrawer"
+				hidden="false" />
+		</location>
+
+		<location name="library" startup="false" x="900" y="0" w="800" h="600">
+			<glyph
+				name="library_bookshelf"
+				x="120" y="320"
+				w="120" h="180"
+				glyph="glyphBookshelf"
+				glyphToggled="glyphBookshelfToggled"
+				onDrop="place library_book on library_bookshelf; toggle library_bookshelf"
+				hidden="false" />
+
+			<item
+				name="library_desk"
+				x="400" y="360"
+				w="200" h="110"
+				glyph="glyphDesk"
+				onTap="reveal library_book"
+				hidden="false">
+				<item
+					name="library_book"
+					x="40" y="-100"
+					w="56" h="56"
+					glyph="glyphBook"
+					glyphRevealed="glyphBookRevealed"
+					onTap="reveal library_windup"
+					hidden="true">
+					<item
+						name="library_windup"
+						x="52" y="24"
+						w="32" h="32"
+						glyph="glyphWindup"
+						hidden="true" />
+				</item>
+			</item>
+
+			<glyph
+				name="library_door_to_foyer"
+				x="690" y="320"
+				w="96" h="180"
+				glyph="glyphDoor"
+				onTap="go foyer"
+				hidden="false" />
+
+			<glyph
+				name="library_inventory_slot"
+				x="400" y="120"
+				w="96" h="72"
+				glyph="glyphDrawer"
+				hidden="false" />
+		</location>
+	</world>
+</game>

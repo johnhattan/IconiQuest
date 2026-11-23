@@ -6,8 +6,8 @@
  * the active camera, pod UI state, inventory items, note-bubble state, and
  * the currently clicked or dragged Actor references.
  *
- * World delegates location and actor behavior to Location/Actor, TMX loading
- * to TmxLoader, resource lookup to the cache services, and mouse state
+ * World delegates location and actor behavior to Location/Actor, XML loading
+ * to IqXmlLoader, resource lookup to the cache services, and mouse state
  * transitions to its handleMouse* methods.
  */
 
@@ -20,7 +20,7 @@
 
 struct World
 {
-	std::string tmxPath;
+	std::string worldPath;
 	std::string assetsDir;
 	std::string gameAssetsRoot;
 	std::string currentGame = "_default";
@@ -53,7 +53,7 @@ struct World
 	World();
 	~World();
 
-	bool load(const std::string& rTmxPath, const std::string& rAssetsDir);
+	bool load(const std::string& rWorldPath, const std::string& rAssetsDir);
 	bool save();
 
 	PropertyDictionary& getProps() { return props; }
@@ -85,6 +85,7 @@ struct World
 	bool handleMouseDown(const f32Point& rScreenPt);
 	bool handleMouseUp(const f32Point& rScreenPt, i32 numTaps = 1);
 	void handleMouseMove(const f32Point& rScreenPt);
+	observer_ptr<Actor> pickActorAtPoint(const f32Point& rScreenPt) const;
 
 	void update(f32 dt);
 	void render(SDL_Renderer* pRenderer);

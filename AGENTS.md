@@ -5,7 +5,7 @@ IconiQuest is a native C++20 game project built around SDL3, Dear ImGui, SDL_ima
 
 The game architecture is centered around a minimal shared game layer in `src/`:
 - `src/pch.hpp` is the canonical shared foundation for geometry, primitive aliases, and low-level types.
-- `src/*.hpp` and `src/*.cpp` implement the world, editor, locations, actors, property system, and TMX/asset loading.
+- `src/*.hpp` and `src/*.cpp` implement the world, editor, locations, actors, property system, and IconiQuest XML/asset loading.
 - `assets/mansion` and `assets/dino` are the canonical runtime data bundles; legacy `org/.../assets` paths are backup-only compatibility fallbacks and should not be treated as the primary project layout.
 
 ## Build and validation

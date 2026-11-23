@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<game name="IconiQuest Default" version="1.0">
+	<world>
+		<location name="start" startup="true" x="0" y="0" w="800" h="600" colorBackground="#1A1A24">
+			<glyph
+				name="default_mouse"
+				x="320" y="280"
+				w="128" h="128"
+				glyph="glyphMouse"
+				hidden="false" />
+
+			<glyph
+				name="default_dino"
+				x="500" y="300"
+				w="144" h="144"
+				glyph="glyphDino"
+				hidden="false" />
+		</location>
+	</world>
+</game>

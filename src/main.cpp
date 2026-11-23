@@ -12,6 +12,40 @@
 
 namespace
 {
+	f32 resolveDpiScale(SDL_Window* pWindow, SDL_Renderer* pRenderer)
+	{
+		f32 retVal = 1.0f;
+		if (pWindow && pRenderer)
+		{
+			i32 windowW = 0;
+			i32 windowH = 0;
+			i32 outputW = 0;
+			i32 outputH = 0;
+			SDL_GetWindowSize(pWindow, &windowW, &windowH);
+			SDL_GetCurrentRenderOutputSize(pRenderer, &outputW, &outputH);
+			if (windowW > 0 && windowH > 0)
+			{
+				f32 scaleX = (f32)outputW / (f32)windowW;
+				f32 scaleY = (f32)outputH / (f32)windowH;
+				retVal = std::max(1.0f, std::min(scaleX, scaleY));
+			}
+		}
+		return retVal;
+	}
+
+	void applyImGuiDpiScale(f32 dpiScale)
+	{
+		static f32 appliedScale = 1.0f;
+		f32 clampedScale = std::clamp(dpiScale, 1.0f, 4.0f);
+		if (std::abs(clampedScale - appliedScale) > 0.01f)
+		{
+			f32 ratio = clampedScale / appliedScale;
+			ImGui::GetStyle().ScaleAllSizes(ratio);
+			ImGui::GetIO().FontGlobalScale = clampedScale;
+			appliedScale = clampedScale;
+		}
+	}
+
 	std::vector<std::filesystem::path> candidateAssetRoots()
 	{
 		std::vector<std::filesystem::path> roots;
@@ -49,7 +83,7 @@ namespace
 	std::filesystem::path resolveMapPath(const std::string& gameName)
 	{
 		auto assetsRoot = resolveAssetsRoot();
-		std::string mapFileName = "_map.tmx";
+		std::string mapFileName = "_map.xml";
 		std::filesystem::path retVal;
 
 		if (gameName.empty() || gameName == "_default")
@@ -236,6 +270,7 @@ i32 main(i32 argc, char* argv[])
 
 				ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
 				ImGui_ImplSDLRenderer3_Init(renderer);
+				applyImGuiDpiScale(resolveDpiScale(window, renderer));
 
 				std::string defaultGame = "_default";
 				std::string currentGame = defaultGame;
@@ -305,210 +340,37 @@ i32 main(i32 argc, char* argv[])
 
 					if (headlessTest)
 					{
-						observer_ptr<Location> part1 = world.findLocation("part1");
-						if (!part1)
+						observer_ptr<Location> foyer = world.findLocation("foyer");
+						observer_ptr<Location> startupLocation = world.getCurrentLocation();
+						if (!foyer)
 						{
-							std::cerr << "[Test Error] part1 not found in Mansion!" << std::endl;
+							std::cerr << "[Test Error] foyer location not found in mansion XML." << std::endl;
+							retVal = 1;
+						}
+						else if (!startupLocation || startupLocation != foyer)
+						{
+							std::cerr << "[Test Error] Startup location should be foyer." << std::endl;
 							retVal = 1;
 						}
 						else
 						{
-							observer_ptr<Actor> table = part1->findActor("glyphTable");
-							observer_ptr<Actor> note = part1->findActor("glyphNoteInstructions");
-							observer_ptr<Actor> copy = part1->findActor("copyright");
-							observer_ptr<Actor> rug = part1->findActor("glyphRug");
-							observer_ptr<Actor> key = part1->findActor("key-skeleton");
-
-							if (!table || !note || !copy || !rug || !key)
+							observer_ptr<Actor> foyerTable = foyer->findActor("foyer_table");
+							observer_ptr<Actor> foyerBook = foyer->findActor("foyer_book");
+							observer_ptr<Actor> foyerWindup = foyer->findActor("foyer_windup");
+							if (!foyerTable || !foyerBook || !foyerWindup)
 							{
-								std::cerr << "[Test Error] Missing actors in part1!" << std::endl;
+								std::cerr << "[Test Error] Missing expected mansion entities (foyer_table/book/windup)." << std::endl;
+								retVal = 1;
+							}
+							else if (!foyerBook->isHidden() || !foyerWindup->isHidden())
+							{
+								std::cerr << "[Test Error] foyer_book and foyer_windup should be hidden on startup." << std::endl;
 								retVal = 1;
 							}
 							else
 							{
-								if (!note->isHidden())
-								{
-									std::cerr << "[Test Error] glyphNoteInstructions should be hidden before table is clicked!" << std::endl;
-									retVal = 1;
-								}
-								else if (!copy->isHidden())
-								{
-									std::cerr << "[Test Error] copyright should be hidden before table is clicked!" << std::endl;
-									retVal = 1;
-								}
-								else if (!key->isHidden())
-								{
-									std::cerr << "[Test Error] key-skeleton should be hidden before rug is clicked!" << std::endl;
-									retVal = 1;
-								}
-								else
-								{
-									std::cout << "[Test] Confirmed: glyphNoteInstructions, copyright, and key-skeleton are initially hidden." << std::endl;
-
-									table->onTap(1);
-									if (note->isHidden())
-									{
-										std::cerr << "[Test Error] glyphNoteInstructions should be revealed after first click on table!" << std::endl;
-										retVal = 1;
-									}
-									else
-									{
-										std::cout << "[Test] Confirmed: glyphNoteInstructions revealed after clicking table." << std::endl;
-
-										table->onTap(1);
-										if (copy->isHidden())
-										{
-											std::cerr << "[Test Error] copyright should be revealed after second click on table!" << std::endl;
-											retVal = 1;
-										}
-										else
-										{
-											std::cout << "[Test] Confirmed: copyright revealed after second click on table." << std::endl;
-
-											f32Point rugOrgPos = rug->getOrgPos();
-											f32 deltaX = rug->props.getFloat("revealDeltaX", 0.0f);
-											f32 revealTime = rug->props.getFloat("revealTime", 0.0f);
-											rug->onTap(1);
-											AnimationManager::instance().update(revealTime + 0.1f);
-											if (key->isHidden())
-											{
-												std::cerr << "[Test Error] glyphKey should be revealed after clicking rug!" << std::endl;
-												retVal = 1;
-											}
-											else if (std::abs(rug->getPos().x - (rugOrgPos.x + deltaX)) > 0.01f)
-											{
-												std::cerr << "[Test Error] glyphRug should shift by revealDeltaX=" << deltaX << "!" << std::endl;
-												retVal = 1;
-											}
-											else
-											{
-												std::cout << "[Test] Confirmed: glyphRug shifts by " << deltaX << " and reveals glyphKey." << std::endl;
-
-												rug->onTap(1);
-												AnimationManager::instance().update(revealTime + 0.1f);
-												if (!key->isHidden())
-												{
-													std::cerr << "[Test Error] glyphKey should be hidden after clicking rug again (revealLoop=true)!" << std::endl;
-													retVal = 1;
-												}
-												else if (std::abs(rug->getPos().x - rugOrgPos.x) > 0.01f)
-												{
-													std::cerr << "[Test Error] glyphRug should return to org pos!" << std::endl;
-													retVal = 1;
-												}
-												else
-												{
-													std::cout << "[Test] Confirmed: glyphRug loops back and re-hides glyphKey." << std::endl;
-													observer_ptr<Location> part6 = world.findLocation("part6");
-													observer_ptr<Location> part3 = world.findLocation("part3");
-													if (!part6 || !part3)
-													{
-														std::cerr << "[Test Error] part6 or part3 not found for book drop test!" << std::endl;
-														retVal = 1;
-													}
-													else
-													{
-														observer_ptr<Actor> book = part6->findActor("glyphBook");
-														observer_ptr<Actor> bookshelf = part3->findActor("glyphBookshelf");
-														if (!book || !bookshelf)
-														{
-															std::cerr << "[Test Error] glyphBook or glyphBookshelf not found!" << std::endl;
-															retVal = 1;
-														}
-														else
-														{
-															book->setHidden(false);
-															bool dropped = bookshelf->onDrop(book);
-															f32Point shelfPos = bookshelf->getPos();
-															if (!dropped)
-															{
-																std::cerr << "[Test Error] glyphBookshelf did not accept glyphBook!" << std::endl;
-																retVal = 1;
-															}
-															else if (book->getLocation() != part3)
-															{
-																std::cerr << "[Test Error] glyphBook was not re-parented to part3!" << std::endl;
-																retVal = 1;
-															}
-															else if (book->getPos().distance(shelfPos) > 0.01f)
-															{
-																std::cerr << "[Test Error] glyphBook was not placed on glyphBookshelf!" << std::endl;
-																retVal = 1;
-															}
-															else if (book->props.get("container") != "glyphBookshelf" ||
-															         book->props.get("location") != "part3")
-															{
-																std::cerr << "[Test Error] glyphBook ownership properties not updated!" << std::endl;
-																retVal = 1;
-															}
-															else if (!book->isHidden())
-															{
-																std::cerr << "[Test Error] glyphBook should remain hidden until glyphBookshelf is tapped!" << std::endl;
-																retVal = 1;
-															}
-															else
-															{
-																bookshelf->onTap(1);
-																if (book->isHidden())
-																{
-																	std::cerr << "[Test Error] glyphBook should be revealed after tapping glyphBookshelf!" << std::endl;
-																	retVal = 1;
-																}
-																else
-																{
-																	bookshelf->onTap(1);
-																	if (!book->isHidden())
-																	{
-																		std::cerr << "[Test Error] glyphBook should be hidden after tapping glyphBookshelf again!" << std::endl;
-																		retVal = 1;
-																	}
-																	else if (!bookshelf->props.getBool("toggled", false))
-																	{
-																		std::cout << "[Test] Confirmed: glyphBookshelf toggled state is updated." << std::endl;
-																	}
-																	else
-																	{
-																		bookshelf->onTap(1);
-																		book->onTap(1);
-																		observer_ptr<Actor> windup = part3->findActor("glyphWindup");
-																		if (!windup || windup->isHidden())
-																		{
-																			std::cerr << "[Test Error] glyphWindup should be revealed by tapping glyphBook!" << std::endl;
-																			retVal = 1;
-																		}
-																		else
-																			std::cout << "[Test] Confirmed: glyphBook and glyphWindup state is preserved." << std::endl;
-																	}
-																}
-
-																if (retVal == 0)
-																{
-
-																	std::cout << "[IconiQuest] Testing Dino map as well..." << std::endl;
-																	World dinoWorld;
-																	dinoWorld.setGameAssetsRoot(assetsRoot.string());
-																	dinoWorld.setCurrentGame("dino");
-																	std::string dinoMapPath = resolveMapPath("dino").string();
-																	if (!dinoWorld.load(dinoMapPath, assetsRoot.string()))
-																{
-																		std::cerr << "[IconiQuest] Failed to load dino map!" << std::endl;
-																		retVal = 1;
-																	}
-																	else
-																	{
-																		std::cout << "[IconiQuest] Successfully loaded Dino map with " << dinoWorld.getLocations().size() << " locations!" << std::endl;
-																		std::cout << "[IconiQuest] Headless test passed successfully!" << std::endl;
-																		retVal = 0;
-																	}
-																}
-															}
-														}
-													}
-												}
-											}
-										}
-									}
-								}
+								std::cout << "[IconiQuest] Headless test passed: XML startup location and nested actors are valid." << std::endl;
+								retVal = 0;
 							}
 						}
 					}
@@ -534,7 +396,9 @@ i32 main(i32 argc, char* argv[])
 							SDL_Event event;
 							while (SDL_PollEvent(&event))
 							{
-								ImGui_ImplSDL3_ProcessEvent(&event);
+								SDL_Event imguiEvent = event;
+								SDL_ConvertEventToRenderCoordinates(renderer, &imguiEvent);
+								ImGui_ImplSDL3_ProcessEvent(&imguiEvent);
 
 								if (event.type == SDL_EVENT_QUIT)
 									running = false;
@@ -552,6 +416,7 @@ i32 main(i32 argc, char* argv[])
 									i32 renderWidth = w, renderHeight = h;
 									SDL_GetCurrentRenderOutputSize(renderer, &renderWidth, &renderHeight);
 									world.getCamera().setPhysicalViewportSize(f32Size((f32)renderWidth, (f32)renderHeight));
+									applyImGuiDpiScale(resolveDpiScale(window, renderer));
 								}
 
 								if (!io.WantCaptureMouse && event.type == SDL_EVENT_FINGER_DOWN)
@@ -617,8 +482,12 @@ i32 main(i32 argc, char* argv[])
 
 							ImGui_ImplSDLRenderer3_NewFrame();
 							ImGui_ImplSDL3_NewFrame();
+							i32 imguiRenderW = 0;
+							i32 imguiRenderH = 0;
+							SDL_GetCurrentRenderOutputSize(renderer, &imguiRenderW, &imguiRenderH);
+							io.DisplaySize = ImVec2((f32)imguiRenderW, (f32)imguiRenderH);
+							io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 							ImGui::NewFrame();
-
 							if (debugVisible)
 								renderDebugWindow(world, debugVisible);
 

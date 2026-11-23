@@ -3,11 +3,11 @@
 A native C++ implementation of the **IconiQuest** "Textless Text Adventure" engine featuring:
 - **SDL3** Hardware-Accelerated Renderer & Sub-pixel coordinate system
 - **Direct SVG Vector Glyph Rendering** via `SDL3_image`
-- **Full Tiled XML (.tmx) Compatibility** via `pugixml` (loads original maps from `IconiQuest0` and `IconiQuest1`)
+- **Hierarchical IconiQuest XML (.xml) Format** via `pugixml`
 - **Integrated In-Engine Level Editor** powered by **Dear ImGui** (toggled with `F1`)
 - **Audio Engine** powered by SDL_mixer (plays SFX and looping music themes)
 - **Sliding UI Drawer ("Pod") System** for inventory management and clues
-- **3-Tier Property System** with runtime deltas, instant room/world reverts, and two-way TMX saving
+- **3-Tier Property System** with runtime deltas and instant room/world reverts
 
 ---
 
@@ -37,11 +37,6 @@ To play the **Haunted Mansion** (IconiQuest 0):
 ./build/iconiquest
 ```
 
-To play the **Dinosaur Island** (IconiQuest 1):
-```bash
-./build/iconiquest --dino
-```
-
 To run the verification test:
 ```bash
 ./build/iconiquest --test
@@ -64,4 +59,4 @@ To run the verification test:
 - **Inspector Panel**: Click any actor to edit its name, glyph, position, size, rotation, flip, toggle triggers, revealer links, destination rooms, and sounds live.
 - **Visual Links Overlay**: Shows real-time connection lines between doors, targets, and triggers.
 - **Glyph Palette**: Bottom tray displaying all available SVGs. Click any glyph to add an actor to the current room.
-- **Save TMX**: Saves your modifications directly back into the `.tmx` XML file, keeping Tiled 100% in sync.
+- **Save XML**: Save support for the new hierarchical XML format is in progress.

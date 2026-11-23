@@ -3,7 +3,7 @@
 #include "AudioEngine.hpp"
 #include "FontEngine.hpp"
 #include "GlyphCache.hpp"
-#include "TmxLoader.hpp"
+#include "IqXmlLoader.hpp"
 
 World::World() : camera(800.0f, 600.0f), settingsPod(PodCorner::TopRight, 200.0f, 150.0f, "cog"), inventoryPod(PodCorner::BottomLeft, Pod::calculateInventoryWidth(4), Pod::calculateInventoryHeight(3), "backpack")
 {
@@ -14,9 +14,9 @@ World::World() : camera(800.0f, 600.0f), settingsPod(PodCorner::TopRight, 200.0f
 
 World::~World() = default;
 
-bool World::load(const std::string& rTmxPath, const std::string& rAssetsDir)
+bool World::load(const std::string& rWorldPath, const std::string& rAssetsDir)
 {
-	this->tmxPath = rTmxPath;
+	this->worldPath = rWorldPath;
 	this->assetsDir = rAssetsDir;
 
 	locations.clear();
@@ -30,9 +30,9 @@ bool World::load(const std::string& rTmxPath, const std::string& rAssetsDir)
 	AudioEngine::instance().setSoundsDir(assetsDir + "/_default/sounds");
 
 	bool retVal = true;
-	if (!TmxLoader::loadWorld(*this, rTmxPath))
+	if (!IqXmlLoader::loadWorld(*this, rWorldPath))
 	{
-		std::cerr << "[World] Failed to load " << rTmxPath << std::endl;
+		std::cerr << "[World] Failed to load " << rWorldPath << std::endl;
 		retVal = false;
 	}
 
@@ -87,8 +87,8 @@ bool World::load(const std::string& rTmxPath, const std::string& rAssetsDir)
 bool World::save()
 {
 	bool retVal = false;
-	if (!tmxPath.empty())
-		retVal = TmxLoader::saveWorld(*this, tmxPath);
+	if (!worldPath.empty())
+		retVal = IqXmlLoader::saveWorld(*this, worldPath);
 	return retVal;
 }
 
@@ -146,7 +146,7 @@ void World::changeLocation(const std::string& rName, f32 transitionTime, const s
 
 void World::switchGame(const std::string& rGameName, f32 transitionTime, const std::string& rEasing)
 { // Resolve the map path for the new game
-	std::string mapFileName = "_map.tmx";
+	std::string mapFileName = "_map.xml";
 	std::filesystem::path newMapPath;
 
 	if (rGameName.empty() || rGameName == "_default")
